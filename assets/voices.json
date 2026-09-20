@@ -1,0 +1,168 @@
+[
+ {
+  "id": "zh-HK-HiuGaaiNeural",
+  "gender": "Female",
+  "locale": "zh-HK",
+  "persona": [
+   "Friendly",
+   "Positive"
+  ],
+  "category": [
+   "General"
+  ]
+ },
+ {
+  "id": "zh-HK-HiuMaanNeural",
+  "gender": "Female",
+  "locale": "zh-HK",
+  "persona": [
+   "Friendly",
+   "Positive"
+  ],
+  "category": [
+   "General"
+  ]
+ },
+ {
+  "id": "zh-HK-WanLungNeural",
+  "gender": "Male",
+  "locale": "zh-HK",
+  "persona": [
+   "Friendly",
+   "Positive"
+  ],
+  "category": [
+   "General"
+  ]
+ },
+ {
+  "id": "zh-CN-XiaoxiaoNeural",
+  "gender": "Female",
+  "locale": "zh-CN",
+  "persona": [
+   "Warm"
+  ],
+  "category": [
+   "News",
+   "Novel"
+  ]
+ },
+ {
+  "id": "zh-CN-XiaoyiNeural",
+  "gender": "Female",
+  "locale": "zh-CN",
+  "persona": [
+   "Lively"
+  ],
+  "category": [
+   "Cartoon",
+   "Novel"
+  ]
+ },
+ {
+  "id": "zh-CN-YunjianNeural",
+  "gender": "Male",
+  "locale": "zh-CN",
+  "persona": [
+   "Passion"
+  ],
+  "category": [
+   "Sports",
+   "Novel"
+  ]
+ },
+ {
+  "id": "zh-CN-YunxiNeural",
+  "gender": "Male",
+  "locale": "zh-CN",
+  "persona": [
+   "Lively",
+   "Sunshine"
+  ],
+  "category": [
+   "Novel"
+  ]
+ },
+ {
+  "id": "zh-CN-YunxiaNeural",
+  "gender": "Male",
+  "locale": "zh-CN",
+  "persona": [
+   "Cute"
+  ],
+  "category": [
+   "Cartoon",
+   "Novel"
+  ]
+ },
+ {
+  "id": "zh-CN-YunyangNeural",
+  "gender": "Male",
+  "locale": "zh-CN",
+  "persona": [
+   "Professional",
+   "Reliable"
+  ],
+  "category": [
+   "News"
+  ]
+ },
+ {
+  "id": "zh-CN-liaoning-XiaobeiNeural",
+  "gender": "Female",
+  "locale": "zh-CN-liaoning",
+  "persona": [
+   "Humorous"
+  ],
+  "category": [
+   "Dialect"
+  ]
+ },
+ {
+  "id": "zh-TW-HsiaoChenNeural",
+  "gender": "Female",
+  "locale": "zh-TW",
+  "persona": [
+   "Friendly",
+   "Positive"
+  ],
+  "category": [
+   "General"
+  ]
+ },
+ {
+  "id": "zh-TW-YunJheNeural",
+  "gender": "Male",
+  "locale": "zh-TW",
+  "persona": [
+   "Friendly",
+   "Positive"
+  ],
+  "category": [
+   "General"
+  ]
+ },
+ {
+  "id": "zh-TW-HsiaoYuNeural",
+  "gender": "Female",
+  "locale": "zh-TW",
+  "persona": [
+   "Friendly",
+   "Positive"
+  ],
+  "category": [
+   "General"
+  ]
+ },
+ {
+  "id": "zh-CN-shaanxi-XiaoniNeural",
+  "gender": "Female",
+  "locale": "zh-CN-shaanxi",
+  "persona": [
+   "Bright"
+  ],
+  "category": [
+   "Dialect"
+  ]
+ }
+]

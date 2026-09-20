@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8"><title>trpgv 广播剧工作台</title>
+<style>
+:root{--bg:#f6f5f2;--card:#fff;--line:#e2e0da;--fg:#222;--muted:#777;--acc:#7a4b2a;--ok:#2f7d4a;--bad:#b33}
+body{margin:0;font:14px/1.5 system-ui,"Microsoft YaHei",sans-serif;color:var(--fg);background:var(--bg)}
+header{display:flex;gap:16px;align-items:center;padding:10px 20px;background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:2}
+header b{color:var(--acc);font-size:16px}
+main{max-width:1200px;margin:0 auto;padding:16px 20px}
+nav{display:flex;gap:4px;margin:10px 0}
+nav button{padding:6px 14px;border:1px solid var(--line);background:var(--card);border-radius:6px 6px 0 0;cursor:pointer}
+nav button.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+section{display:none;background:var(--card);border:1px solid var(--line);border-radius:0 8px 8px 8px;padding:16px}
+section.on{display:block}
+button,select,input,textarea{font:inherit}
+button{cursor:pointer;border:1px solid var(--line);background:#fafaf8;border-radius:6px;padding:5px 12px}
+button.p{background:var(--acc);color:#fff;border-color:var(--acc)}
+button:disabled{opacity:.5;cursor:default}
+table{width:100%;border-collapse:collapse}
+th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{color:var(--muted);font-weight:500}
+input[type=text],select{padding:4px 6px;border:1px solid var(--line);border-radius:4px}
+textarea{width:100%;box-sizing:border-box;min-height:320px;padding:8px;border:1px solid var(--line);border-radius:6px;font-family:Consolas,monospace;font-size:13px}
+pre#log{background:#1e1e1e;color:#ddd;padding:10px;border-radius:6px;max-height:220px;overflow:auto;font-size:12px;white-space:pre-wrap;margin:0}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:8px 0}
+.muted{color:var(--muted)}.ok{color:var(--ok)}.bad{color:var(--bad)}
+.tag{display:inline-block;padding:0 6px;border-radius:10px;background:#eee;font-size:12px;margin:1px}
+.step{display:inline-block;width:10px;height:10px;border-radius:5px;background:#ccc;margin-right:4px}
+.step.done{background:var(--ok)}
+audio{height:30px;vertical-align:middle}
+h3{margin:14px 0 6px;font-size:15px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:800px){.grid2{grid-template-columns:1fr}}
+</style></head><body>
+<header><b>trpgv 广播剧工作台</b>
+ 项目 <select id="proj"></select>
+ <span id="steps"></span>
+ <span id="run" class="muted"></span>
+</header>
+<main>
+<nav>
+ <button data-t="imp" class="on">① 导入</button><button data-t="chars">② 角色与声线</button>
+ <button data-t="script">③ 剧本</button><button data-t="assets">④ 音效/BGM</button><button data-t="audio">⑤ 生成音频</button>
+</nav>
+
+<section id="imp" class="on">
+ <div class="row"><input type="text" id="newName" placeholder="项目名，如 金枝" style="width:160px">
+  <input type="file" id="newFile" accept=".txt,.docx">
+  <button class="p" onclick="createProj()">导入并解析</button>
+  <span class="muted">支持 .txt / .docx；格式 <code>&lt;[昵称]角色&gt;:内容</code></span></div>
+ <div class="row"><button onclick="runStep('parse')">1 解析</button><button onclick="runStep('clean')">2 清洗 (规则+LLM)</button>
+  <button onclick="runStep('chars')">3 角色表</button><button class="p" onclick="runStep('all')">一键全流程</button>
+  <button onclick="loadLines()">查看清洗结果</button></div>
+ <pre id="log"></pre>
+ <textarea id="linesView" style="margin-top:10px;min-height:200px" readonly hidden></textarea>
+</section>
+
+<section id="chars">
+ <div class="row"><input type="text" id="pvText" value="你好，我是这个角色，这是我的声线试听。" style="width:360px">
+  <span class="muted">试听文本</span><button class="p" onclick="saveChars()">保存角色表</button><span id="charsMsg"></span></div>
+ <table id="charsTbl"><thead><tr><th>角色</th><th>身份</th><th>性格 / 语气</th><th>声线</th><th>速度</th><th>音调</th><th>试听</th></tr></thead><tbody></tbody></table>
+ <p class="muted">声线来自 edge-tts（免费在线）。保存后到「⑤ 生成音频」重跑，未改动的台词走缓存。</p>
+</section>
+
+<section id="script">
+ <div class="row"><button class="p" onclick="runStep('script','?smart='+$('#smart').checked)">生成剩余幕</button>
+  <label><input type="checkbox" id="smart"> 用 sonnet</label>
+  <select id="sceneSel" onchange="showScene()"></select>
+  <button onclick="regenScene()">重生成本幕</button><button onclick="saveScene()">保存本幕</button><span id="sceneMsg"></span></div>
+ <textarea id="sceneText" placeholder="尚无剧本，先生成。"></textarea>
+ <p class="muted">格式：<code>【角色】台词</code>；<code>[音效]</code> 独立行；<code>「BGM: 描述」</code> 仅在切换处。保存后自动重新拼接 script.md。</p>
+</section>
+
+<section id="assets">
+ <div class="grid2">
+  <div><h3>缺失素材（本项目）<button onclick="autofill(this)" style="margin-left:8px">一键自动补齐</button></h3>
+   <div id="missing" class="muted">—</div>
+   <p class="muted">点击某项可在右侧搜索；「自动补齐」按描述从 Openverse（Freesound 音效 / Jamendo 音乐，CC 授权）取首个匹配。</p></div>
+  <div><h3>在线搜索 (Openverse)</h3>
+   <div class="row"><select id="ovKind"><option value="sfx">音效</option><option value="bgm">BGM</option></select>
+    <input type="text" id="ovQ" placeholder="中文或英文描述，如 推门 / rain night" style="width:260px" onkeydown="if(event.key==='Enter')ovSearch()">
+    <button class="p" onclick="ovSearch()">搜索</button><span id="ovMsg" class="muted"></span></div>
+   <div id="ovRes"></div>
+   <details style="margin-top:10px"><summary class="muted">本地上传</summary>
+   <div class="row"><select id="upKind"><option value="sfx">音效 sfx</option><option value="bgm">BGM</option></select>
+    <input type="file" id="upFile" accept="audio/*"></div>
+   <div class="row"><input type="text" id="upTarget" placeholder="保存为文件名（可空）" style="width:200px">
+    <input type="text" id="upKws" placeholder="关键词，逗号分隔" style="width:200px">
+    <button onclick="upload()">上传</button><span id="upMsg"></span></div></details>
+  </div>
+ </div>
+ <h3>素材库</h3>
+ <table id="assetTbl"><thead><tr><th>类型</th><th>文件</th><th>关键词（可编辑，回车保存）</th><th>试听</th></tr></thead><tbody></tbody></table>
+</section>
+
+<section id="audio">
+ <div class="row"><button class="p" onclick="runStep('audio')">合成 + 混音</button><span class="muted">按行缓存，只重合成改动过的台词</span></div>
+ <div id="outs"></div>
+</section>
+</main>
+
+<script>
+const $=s=>document.querySelector(s), api=(u,o)=>fetch('/api'+u,o).then(async r=>{if(!r.ok)throw new Error((await r.json()).detail||r.status);return r.json()});
+let P='', voices=[], chars=null, scenesData=[], timer=null;
+
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
+ document.querySelectorAll('nav button,section').forEach(x=>x.classList.remove('on'));
+ b.classList.add('on');$('#'+b.dataset.t).classList.add('on');refreshTab(b.dataset.t)});
+$('#proj').onchange=e=>{P=e.target.value;localStorage.p=P;refreshAll()};
+
+async function loadProjects(){
+ const ps=await api('/projects');const sel=$('#proj');sel.innerHTML='';
+ ps.forEach(p=>sel.add(new Option(p.name,p.name)));
+ if(!P||!ps.find(x=>x.name===P))P=localStorage.p&&ps.find(x=>x.name===localStorage.p)?localStorage.p:(ps[0]?.name||'');
+ sel.value=P;
+ const cur=ps.find(x=>x.name===P);
+ $('#steps').innerHTML=cur?['lines','clean','chars','script','audio'].map(k=>`<span class="step ${cur.has[k]?'done':''}" title="${k}"></span>`).join(''):'';
+}
+async function refreshAll(){await loadProjects();refreshTab(document.querySelector('nav button.on').dataset.t)}
+function refreshTab(t){if(!P)return;({chars:loadChars,script:loadScenes,assets:loadAssets,audio:loadOuts})[t]?.()}
+
+async function createProj(){
+ const name=$('#newName').value.trim(),f=$('#newFile').files[0];
+ if(!name||!f)return alert('请填项目名并选择文件');
+ const fd=new FormData();fd.append('file',f);
+ await api('/projects?name='+encodeURIComponent(name),{method:'POST',body:fd});
+ P=name;await loadProjects();runStep('parse');
+}
+async function runStep(step,q=''){
+ if(!P)return alert('先导入项目');
+ try{await api(`/projects/${P}/run/${step}${q}`,{method:'POST'})}catch(e){return alert(e.message)}
+ $('#run').textContent='运行中: '+step;poll();
+}
+function poll(){clearInterval(timer);timer=setInterval(async()=>{
+ const s=await api(`/projects/${P}/status`);$('#log').textContent=s.log;$('#log').scrollTop=1e9;
+ if(!s.running){clearInterval(timer);$('#run').textContent='';refreshAll()}},1500)}
+async function loadLines(){const r=await api(`/projects/${P}/lines`);const t=$('#linesView');t.hidden=false;t.value=r.text}
+
+// ---- chars ----
+async function loadChars(){
+ if(!voices.length)voices=await api('/voices');
+ try{chars=await api(`/projects/${P}/characters`)}catch(e){$('#charsTbl tbody').innerHTML=`<tr><td colspan=7 class="muted">${e.message}</td></tr>`;return}
+ const rows=[{name:'旁白',type:'KP',_r:chars.narrator},...chars.roles.map(r=>({name:r.name,type:r.type,_r:r}))];
+ $('#charsTbl tbody').innerHTML=rows.map((x,i)=>{
+  const r=x._r;
+  const opts=voices.map(v=>`<option value="${v.id}" ${v.id===r.voice?'selected':''}>${v.id.replace('Neural','')} · ${v.gender==='Female'?'女':'男'} · ${v.persona.join('/')}</option>`).join('');
+  return `<tr data-i="${i}"><td><b>${x.name}</b>${r.aliases?.length?'<br><span class="muted">'+r.aliases.join(' / ')+'</span>':''}</td><td>${x.type||''}</td>
+  <td><span class="muted">${r.traits||''}</span><br>${r.tone||''}</td>
+  <td><select class="v" ${!r.voice?'style="border-color:var(--bad)"':''}><option value="">（未指定）</option>${opts}</select></td>
+  <td><input type="text" class="r" value="${r.rate||'0%'}" style="width:52px"></td>
+  <td><input type="text" class="pt" value="${r.pitch||'0Hz'}" style="width:52px"></td>
+  <td><button onclick="preview(this)">▶</button> <audio class="pa"></audio></td></tr>`}).join('');
+ window._rows=rows;
+}
+function rowCfg(tr){return{voice:tr.querySelector('.v').value,rate:tr.querySelector('.r').value,pitch:tr.querySelector('.pt').value}}
+async function preview(btn){
+ const tr=btn.closest('tr'),c=rowCfg(tr);if(!c.voice)return alert('先选声线');
+ btn.disabled=true;
+ const a=tr.querySelector('.pa');a.src=`/api/preview?`+new URLSearchParams({...c,text:$('#pvText').value});
+ a.onloadeddata=()=>{btn.disabled=false;a.play()};a.onerror=()=>{btn.disabled=false;alert('试听失败')};
+}
+async function saveChars(){
+ document.querySelectorAll('#charsTbl tbody tr').forEach(tr=>Object.assign(window._rows[tr.dataset.i]._r,rowCfg(tr)));
+ await api(`/projects/${P}/characters`,{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify(chars)});
+ $('#charsMsg').textContent='已保存';setTimeout(()=>$('#charsMsg').textContent='',1500);loadChars();
+}
+
+// ---- script ----
+async function loadScenes(){
+ scenesData=await api(`/projects/${P}/scenes`);const sel=$('#sceneSel');const cur=sel.value;sel.innerHTML='';
+ scenesData.forEach(s=>sel.add(new Option(`第${s.n}幕 ${s.title}`,s.n)));
+ if(cur&&scenesData.find(s=>s.n==cur))sel.value=cur;showScene();
+}
+function showScene(){const s=scenesData.find(x=>x.n==$('#sceneSel').value);$('#sceneText').value=s?s.text:''}
+function regenScene(){const n=$('#sceneSel').value;if(!n)return;runStep('script',`?scene=${n}&smart=${$('#smart').checked}`)}
+async function saveScene(){
+ const n=$('#sceneSel').value;if(!n)return;
+ await api(`/projects/${P}/scenes/${n}`,{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify({text:$('#sceneText').value})});
+ $('#sceneMsg').textContent='已保存并重新拼接';setTimeout(()=>$('#sceneMsg').textContent='',1500);loadScenes();
+}
+
+// ---- assets ----
+async function loadAssets(){
+ const m=await api(`/projects/${P}/missing`);
+ $('#missing').innerHTML=m.length?m.map(x=>{const [k,d]=x.split(': ');return `<span class="tag" style="cursor:pointer" onclick="pick('${k}','${d.replace(/'/g,'')}')">${x}</span>`}).join(' '):'<span class="ok">无缺失</span>';
+ const a=await api('/assets');
+ $('#assetTbl tbody').innerHTML=['sfx','bgm'].flatMap(k=>Object.entries(a[k]).map(([f,x])=>`<tr><td>${k}</td>
+  <td class="${x.exists?'ok':'bad'}">${f}${x.exists?'':' （缺文件）'}</td>
+  <td><input type="text" value="${x.kws.join(',')}" style="width:95%" onkeydown="if(event.key==='Enter')saveKws('${k}','${f}',this)"></td>
+  <td>${x.exists?`<audio controls preload="none" src="/assets/${k}/${encodeURIComponent(f)}"></audio>`:''}</td></tr>`)).join('');
+}
+async function saveKws(k,f,inp){await api(`/assets/${k}/${encodeURIComponent(f)}/kws`,{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify({text:inp.value})});inp.style.borderColor='var(--ok)'}
+async function upload(){
+ const f=$('#upFile').files[0];if(!f)return alert('选择文件');
+ const fd=new FormData();fd.append('file',f);
+ const q=new URLSearchParams({kws:$('#upKws').value,target:$('#upTarget').value});
+ await api(`/assets/${$('#upKind').value}?${q}`,{method:'POST',body:fd});
+ $('#upMsg').textContent='已上传';setTimeout(()=>$('#upMsg').textContent='',1500);loadAssets();
+}
+let ovDesc='';
+function pick(k,d){$('#ovKind').value=k;$('#ovQ').value=d;ovDesc=d;ovSearch()}
+async function ovSearch(){
+ const q=$('#ovQ').value.trim();if(!q)return;if(q!==ovDesc)ovDesc=q;
+ $('#ovMsg').textContent='搜索中…';$('#ovRes').innerHTML='';
+ const r=await api(`/openverse/search?`+new URLSearchParams({q,kind:$('#ovKind').value}));
+ $('#ovMsg').textContent=`检索词: ${r.query}，${r.results.length} 条`;
+ $('#ovRes').innerHTML=r.results.map((x,i)=>x.error?`<div class="bad">${x.error}</div>`:
+  `<div class="row" style="border-bottom:1px solid var(--line);padding:4px 0">
+   <audio controls preload="none" src="${x.url}" style="width:220px"></audio>
+   <span style="flex:1"><b>${x.title}</b> <span class="muted">${x.duration}s · ${x.source} · ${x.license}</span></span>
+   <button onclick='grab(${JSON.stringify(x)})'>选用</button></div>`).join('');
+}
+async function grab(x){
+ const kind=$('#ovKind').value;
+ const kws=prompt('匹配关键词（逗号分隔）',ovDesc);if(kws===null)return;
+ const name=(kws.split(/[,，]/)[0]||x.title).trim()+'_'+x.id.slice(0,6);
+ await api('/openverse/grab',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({url:x.url,kind,name,kws,attribution:x.attribution})});
+ $('#ovMsg').textContent='已保存到 assets/'+kind;loadAssets();
+}
+async function autofill(btn){
+ btn.disabled=true;btn.textContent='下载中…';
+ try{const r=await api(`/projects/${P}/autofill`,{method:'POST'});
+  alert(r.map(x=>(x.ok?'✓ ':'✗ ')+x.kind+' '+x.desc+(x.ok?' ← '+x.title:' (无结果: '+x.q+')')).join('\n')||'无缺失');
+ }finally{btn.disabled=false;btn.textContent='一键自动补齐';loadAssets()}
+}
+
+// ---- audio ----
+async function loadOuts(){
+ const fs=await api(`/projects/${P}/out`);
+ $('#outs').innerHTML=fs.length?fs.map(f=>`<div class="row"><span style="width:200px">${f}</span><audio controls preload="none" src="/work/${encodeURIComponent(P)}/out/${encodeURIComponent(f)}?t=${Date.now()}"></audio><a href="/work/${encodeURIComponent(P)}/out/${encodeURIComponent(f)}" download>下载</a></div>`).join(''):'<span class="muted">尚未生成</span>';
+}
+
+refreshAll();
+</script></body></html>

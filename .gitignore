@@ -1,0 +1,29 @@
+# secrets / local env
+.env
+.env.*
+!.env.example
+*.key
+.venv/
+
+# run artifacts
+work/
+cache/
+*.log
+*.err
+.playwright-mcp/
+.claude/
+
+# private session logs; keep the folder only
+samples/*
+!samples/.gitkeep
+
+# downloaded CC audio (see assets/ATTRIBUTION.txt); fetch with `trpgv assets`
+assets/sfx/*
+assets/bgm/*
+!assets/sfx/.gitkeep
+!assets/bgm/.gitkeep
+
+# python
+__pycache__/
+*.egg-info/
+*.pyc

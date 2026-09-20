@@ -1,0 +1,200 @@
+{
+ "sfx": {
+  "door_open.wav": [
+   "推门",
+   "开门",
+   "门被推开"
+  ],
+  "door_close.wav": [
+   "关门",
+   "门关上",
+   "门锁"
+  ],
+  "thunder.wav": [
+   "雷声",
+   "雷鸣",
+   "闷雷"
+  ],
+  "footsteps.wav": [
+   "脚步"
+  ],
+  "phone_dial.wav": [
+   "拨号",
+   "电话亭"
+  ],
+  "phone_hangup.wav": [
+   "挂断",
+   "挂回",
+   "咔哒"
+  ],
+  "paper.wav": [
+   "翻动报纸",
+   "翻页",
+   "纸张"
+  ],
+  "pour_tea.wav": [
+   "倒茶",
+   "倒水"
+  ],
+  "object_drop.wav": [
+   "砸在地上",
+   "落地",
+   "掉落"
+  ],
+  "footsteps_53e1f6.mp3": [
+   "脚步",
+   "脚步声来来去去"
+  ],
+  "door_open_e7a0ed.mp3": [
+   "开门",
+   "开门声",
+   "推门",
+   "推门声"
+  ],
+  "hanger_drop_2aa08a.mp3": [
+   "衣架",
+   "衣架砸地声"
+  ],
+  "light_switch_c8ae5f.mp3": [
+   "开灯",
+   "开灯声"
+  ],
+  "door_close_lock_0ac564.mp3": [
+   "关门",
+   "关门、反锁声",
+   "反锁"
+  ],
+  "pouring_tea_e9c472.mp3": [
+   "倒茶",
+   "倒茶声"
+  ],
+  "paper_rustle_newspaper_3373e6.mp3": [
+   "报纸",
+   "报纸翻动声",
+   "纸"
+  ],
+  "paper_rustle_newspaper_crumple_fcd771.mp3": [
+   "报纸",
+   "报纸被捏皱的声音",
+   "捏皱",
+   "纸"
+  ],
+  "paper_rustle_pen_writing_8bd5ba.mp3": [
+   "书写",
+   "笔",
+   "笔尖在纸上书写的沙沙声",
+   "纸"
+  ],
+  "telephone_ring_rotary_phone_dial_bf01f4.mp3": [
+   "拨号",
+   "电话",
+   "电话拨号声"
+  ],
+  "telephone_ring_phone_pickup_d3d1d8.mp3": [
+   "接通",
+   "电话",
+   "电话接通声"
+  ],
+  "telephone_handset_c164ca.mp3": [
+   "听筒",
+   "放下听筒声"
+  ],
+  "wheelchair_69a066.mp3": [
+   "轮椅",
+   "轮椅滚动声"
+  ],
+  "telephone_handset_click_c164ca.mp3": [
+   "听筒",
+   "听筒挂回话机的咔哒声",
+   "咔哒"
+  ],
+  "page_turn_ae81dc.mp3": [
+   "翻书",
+   "翻书声"
+  ],
+  "thunder_f663e7.mp3": [
+   "远处沉闷的雷声",
+   "雷"
+  ],
+  "engine_rumble_fire_8b20b1.mp3": [
+   "引擎",
+   "消防车",
+   "消防车引擎轰鸣，缓缓驶离",
+   "轰鸣"
+  ],
+  "horse_hooves_carriage_wheels_bffce3.mp3": [
+   "车轮",
+   "马蹄",
+   "马蹄声与车轮声响起"
+  ],
+  "horse_carriage_320ec3.mp3": [
+   "停下",
+   "减速",
+   "马车",
+   "马车减速停下"
+  ]
+ },
+ "bgm": {
+  "tension_strings.mp3": [
+   "紧张",
+   "悬疑",
+   "弦乐",
+   "不安"
+  ],
+  "rain_night.mp3": [
+   "雨",
+   "夜"
+  ],
+  "calm_day.mp3": [
+   "平静",
+   "日常",
+   "午后",
+   "舒缓"
+  ],
+  "street.mp3": [
+   "街",
+   "市集",
+   "人声"
+  ],
+  "suspense_mystery_strings_91926b.mp3": [
+   "低沉的悬疑弦乐，暗流涌动",
+   "弦乐",
+   "悬疑"
+  ],
+  "strings_rumble_c519c4.mp3": [
+   "弦乐",
+   "弦乐渐沉，混入低频的轰鸣",
+   "轰鸣"
+  ],
+  "clock_tick_8c5385.mp3": [
+   "慵懒",
+   "慵懒午后的暖意里，渗入一丝若有若无的时钟滴答",
+   "滴答",
+   "钟"
+  ],
+  "light_playful_4c7cb6.mp3": [
+   "俏皮",
+   "小调",
+   "转为轻快俏皮的小调",
+   "轻快"
+  ],
+  "static_1b7cc2.mp3": [
+   "低沉压抑，隐约的电流杂音",
+   "压抑",
+   "电流"
+  ],
+  "street_ambience_light_03549b.mp3": [
+   "不安",
+   "街",
+   "轻快",
+   "黄昏",
+   "黄昏街道，轻快中带一丝不安"
+  ],
+  "dark_tension_cinematic_1d3022.mp3": [
+   "紧张",
+   "诙谐",
+   "轻快",
+   "轻快诙谐，暗藏一丝紧张"
+  ]
+ }
+}

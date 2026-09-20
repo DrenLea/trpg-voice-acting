@@ -1,0 +1,27 @@
+sfx/footsteps_53e1f6.mp3	"Footsteps, Puddles, A.wav" by InspectorJ is licensed under CC BY 4.0. To view a copy of this license, visit https://creativecommons.org/licenses/by/4.0/.
+sfx/door_open_e7a0ed.mp3	"door - open 01.wav" by Anthousai is marked with CC0 1.0. To view the terms, visit https://creativecommons.org/publicdomain/zero/1.0/.
+sfx/hanger_drop_2aa08a.mp3	"Dropping hangers in bin" by jorickhoofd is licensed under CC BY 4.0. To view a copy of this license, visit https://creativecommons.org/licenses/by/4.0/.
+sfx/light_switch_c8ae5f.mp3	"Light Switches" by ashleyxxpiano is licensed under CC BY-NC 3.0. To view a copy of this license, visit https://creativecommons.org/licenses/by-nc/3.0/.
+sfx/door_close_lock_0ac564.mp3	"horror gate.aif" by Tomlija is licensed under CC BY 3.0. To view a copy of this license, visit https://creativecommons.org/licenses/by/3.0/.
+sfx/pouring_tea_e9c472.mp3	"Pouring tea" by paul_sutyrin is licensed under CC BY 4.0. To view a copy of this license, visit https://creativecommons.org/licenses/by/4.0/.
+bgm/suspense_mystery_strings_91926b.mp3	"Dramatic Suspenseful Promo (Version 1)" by makesound is licensed under CC BY-NC-ND 3.0. To view a copy of this license, visit https://creativecommons.org/licenses/by-nc-nd/3.0/.
+sfx/paper_rustle_newspaper_3373e6.mp3	"Magazine Rustle and Book Closing" by Zott820 is marked with CC0 1.0. To view the terms, visit https://creativecommons.org/publicdomain/zero/1.0/.
+sfx/paper_rustle_newspaper_crumple_fcd771.mp3	"Crushing Paper - Slow.wav" by PsychoPancake is licensed under CC BY-NC 3.0. To view a copy of this license, visit https://creativecommons.org/licenses/by-nc/3.0/.
+sfx/paper_rustle_pen_writing_8bd5ba.mp3	"writing - pen - wide 01.wav" by Anthousai is marked with CC0 1.0. To view the terms, visit https://creativecommons.org/publicdomain/zero/1.0/.
+sfx/telephone_ring_rotary_phone_dial_bf01f4.mp3	"Rotary Phone Ring loopable" by cookies+policy is marked with CC0 1.0. To view the terms, visit https://creativecommons.org/publicdomain/zero/1.0/.
+sfx/telephone_ring_phone_pickup_d3d1d8.mp3	"20060910.phone.ring.mp3" by dobroide is licensed under CC BY 4.0. To view a copy of this license, visit https://creativecommons.org/licenses/by/4.0/.
+sfx/telephone_handset_c164ca.mp3	"Phone Receiver.mp3" by Percy Duke is licensed under CC BY 3.0. To view a copy of this license, visit https://creativecommons.org/licenses/by/3.0/.
+sfx/door_open_e7a0ed.mp3	"door - open 01.wav" by Anthousai is marked with CC0 1.0. To view the terms, visit https://creativecommons.org/publicdomain/zero/1.0/.
+sfx/wheelchair_69a066.mp3	"Wheelchair" by JuanFG is licensed under CC BY 4.0. To view a copy of this license, visit https://creativecommons.org/licenses/by/4.0/.
+sfx/telephone_handset_click_c164ca.mp3	"Phone Receiver.mp3" by Percy Duke is licensed under CC BY 3.0. To view a copy of this license, visit https://creativecommons.org/licenses/by/3.0/.
+bgm/strings_rumble_c519c4.mp3	"First Rumble" by KonstantinPazuzuStudio is licensed under CC BY 3.0. To view a copy of this license, visit https://creativecommons.org/licenses/by/3.0/.
+sfx/page_turn_ae81dc.mp3	"Page Turn" by davidbain is marked with CC0 1.0. To view the terms, visit https://creativecommons.org/publicdomain/zero/1.0/.
+bgm/clock_tick_8c5385.mp3	"Christmas Clock Ticking (Full version)" by GarnaVutka is licensed under CC BY-NC-ND 3.0. To view a copy of this license, visit https://creativecommons.org/licenses/by-nc-nd/3.0/.
+bgm/light_playful_4c7cb6.mp3	"Playful Light Piano Music (Main)" by Scorpiano is licensed under CC BY-NC-ND 3.0. To view a copy of this license, visit https://creativecommons.org/licenses/by-nc-nd/3.0/.
+bgm/static_1b7cc2.mp3	"Static Motion" by Synthetik Human is licensed under CC BY-NC-SA 3.0. To view a copy of this license, visit https://creativecommons.org/licenses/by-nc-sa/3.0/.
+bgm/street_ambience_light_03549b.mp3	"Back to Lighted Streets" by Kai Engel is licensed under CC BY-NC 3.0. To view a copy of this license, visit https://creativecommons.org/licenses/by-nc/3.0/.
+sfx/thunder_f663e7.mp3	"Thunder Tube, Large, Hit, A (H1).wav" by InspectorJ is licensed under CC BY 4.0. To view a copy of this license, visit https://creativecommons.org/licenses/by/4.0/.
+bgm/dark_tension_cinematic_1d3022.mp3	"Cinematic Horror Sci-Fi Suspense Tension Dark Woods Atmosphere Theme Soundtrack 026" by ProductionMusic (Instrumental Version) is licensed under CC BY-NC-ND 3.0. To view a copy of this license, visit https://creativecommons.org/licenses/by-nc-nd/3.0/.
+sfx/engine_rumble_fire_8b20b1.mp3	"AERORckt_Rocket roar 5.Distant.Steady.Crackle_EM_(8lrs).wav" by newlocknew is licensed under CC BY-NC 4.0. To view a copy of this license, visit https://creativecommons.org/licenses/by-nc/4.0/.
+sfx/horse_hooves_carriage_wheels_bffce3.mp3	"horse with old cart.wav" by bruno.auzet is marked with CC0 1.0. To view the terms, visit https://creativecommons.org/publicdomain/zero/1.0/.
+sfx/horse_carriage_320ec3.mp3	"Horse carriage in Vienna" by Urkki69 is marked with CC0 1.0. To view the terms, visit https://creativecommons.org/publicdomain/zero/1.0/.
