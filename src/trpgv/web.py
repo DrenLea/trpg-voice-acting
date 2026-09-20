@@ -94,7 +94,7 @@ def run(p: str, step: str, scene: int | None = None, smart: bool = False):
         if smart or (not scene and config.load(d)["script_smart"]):
             args.append("--smart")
     log = (d / "log.txt").open("w", encoding="utf-8")
-    procs[p] = subprocess.Popen(args, stdout=log, stderr=subprocess.STDOUT,
+    procs[p] = subprocess.Popen(args, stdout=log, stderr=subprocess.STDOUT, cwd=os.getcwd(),
                                 env={**os.environ, "PYTHONIOENCODING": "utf-8", "PYTHONUNBUFFERED": "1"})
     return {"ok": True}
 

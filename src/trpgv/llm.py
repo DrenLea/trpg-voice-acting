@@ -9,13 +9,16 @@ _client: anthropic.Anthropic | None = None
 
 
 def _load_env() -> None:
-    p = Path(".env")
-    if not p.exists():
+    # 项目 .env 优先于 shell 环境变量，避免外部残留的 key 覆盖
+    for p in (Path(".env"), Path(__file__).resolve().parents[2] / ".env"):
+        if p.exists():
+            break
+    else:
         return
     for s in p.read_text(encoding="utf-8").splitlines():
         if "=" in s and not s.startswith("#"):
             k, v = s.split("=", 1)
-            if v.strip() and k.strip() not in os.environ:
+            if v.strip():
                 os.environ[k.strip()] = v.strip()
 
 
@@ -23,6 +26,8 @@ def client() -> anthropic.Anthropic:
     global _client
     if _client is None:
         _load_env()
+        if not os.environ.get("ANTHROPIC_API_KEY"):
+            raise SystemExit("未配置 ANTHROPIC_API_KEY：复制 .env.example 为 .env 并填入密钥（如走中转站再填 ANTHROPIC_BASE_URL）")
         _client = anthropic.Anthropic()
     return _client
 

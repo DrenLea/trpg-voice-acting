@@ -1,5 +1,6 @@
 import argparse
 import json
+import os
 from pathlib import Path
 
 from . import characters, clean, llm, parse, script, voices
@@ -57,6 +58,7 @@ def main() -> None:
     if args.cmd == "web":
         from . import web
 
+        os.chdir(Path(__file__).resolve().parents[2])
         print(f"http://{args.host}:{args.port}")
         web.serve(args.host, args.port)
         return
