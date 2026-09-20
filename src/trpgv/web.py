@@ -1,3 +1,4 @@
+import asyncio
 import json
 import os
 import re
@@ -6,7 +7,7 @@ import sys
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, UploadFile
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -150,7 +151,41 @@ def project_voices(p: str, refresh: bool = False):
                 raise HTTPException(502, f"拉取 Azure 声线失败: {ex}") from ex
         return {"engine": "azure", "voices": _json(f, []), "roles": list(tts.ROLES)}
     ids = [v.strip() for v in re.split(r"[,，\s]+", cfg["tts_voices"]) if v.strip()]
-    return {"engine": e, "voices": [{"id": v, "gender": "", "persona": []} for v in ids]}
+    out = [{"id": v, "gender": "", "persona": []} for v in ids]
+    design = False
+    eng = tts.engine_from(cfg)
+    if eng["base_url"]:
+        try:
+            r = tts.get_json(f"{eng['base_url']}/voices", eng)
+            vs = r.get("voices", r.get("data", r)) if isinstance(r, dict) else r
+            design = bool(isinstance(r, dict) and r.get("design"))
+            for v in vs:
+                v = {"id": v, "name": ""} if isinstance(v, str) else {"id": v.get("id") or v.get("name"), "name": v.get("name", ""), "desc": v.get("desc", "")}
+                if v["id"] and v["id"] not in ids:
+                    out.append({**v, "gender": "", "persona": []})
+        except Exception:  # noqa: BLE001 服务未起或不支持 /voices，退回手填列表
+            pass
+    return {"engine": e, "voices": out, "design": design}
+
+
+class DesignBody(BaseModel):
+    name: str
+    instruct: str
+    text: str = ""
+
+
+@app.post("/api/projects/{p}/voice-design")
+async def voice_design(p: str, b: DesignBody):
+    """转发到本地 Qwen3-TTS 服务造声线；返回试听 mp3，头 X-Voice-Id 为新声线 id。"""
+    eng = tts.engine_from(config.load(_work(p)))
+    if eng["engine"] != "openai" or not eng["base_url"]:
+        raise HTTPException(400, "需先在设置页把 tts_engine 设为 openai 并填 tts_base_url")
+    body = {"name": b.name, "instruct": b.instruct, "text": b.text or "你好，我是这个角色，这是我的声线试听。"}
+    try:
+        data, hdr = await asyncio.to_thread(tts.post_raw, f"{eng['base_url']}/voice-design", body, eng, 600)
+    except Exception as ex:  # noqa: BLE001
+        raise HTTPException(502, f"造声线失败: {ex}") from ex
+    return Response(data, media_type="audio/mpeg", headers={"X-Voice-Id": hdr.get("x-voice-id", "")})
 
 
 @app.get("/api/projects/{p}/characters")

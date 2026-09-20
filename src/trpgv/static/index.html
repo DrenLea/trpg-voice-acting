@@ -241,14 +241,16 @@ function poll(){clearInterval(timer);timer=setInterval(async()=>{
 async function loadLines(){const r=await api(`/projects/${P}/lines`);const t=$('#linesView');t.hidden=false;t.value=r.text}
 
 // ---- chars ----
-let engine='edge',roleList=[];
+let engine='edge',roleList=[],design=false;
 const HINT={edge:'声线来自 edge-tts（免费在线，7 个 zh-CN）。「风格指令」「年龄」需在设置页切到 azure 或 openai 引擎。',
  azure:'声线来自 Azure Speech（F0 免费层每月 50 万字）。「风格指令」为该声线支持的情感风格；「年龄」仅标有「年龄可调」的声线可用（Xiaomo / Xiaoxuan / Yunxi / Yunye 等）。',
- openai:'声线来自设置页 tts_voices。「风格指令」为自由文本，空则用语气栏。'};
-async function loadVoices(){if(!voices.length){const r=await api(`/projects/${P}/voices`);voices=r.voices;engine=r.engine;roleList=r.roles||[];document.body.classList.toggle('az',engine==='azure')}}
+ openai:'声线来自 tts_base_url 服务的 /voices 与设置页 tts_voices。「风格指令」为自由文本，空则用语气栏。',
+ design:'已连接本地 Qwen3-TTS（trpgv tts-server）：在声线下方写一句描述（性别 / 年龄 / 音色 / 语气），点「造声线」生成专属声线并自动选中；描述保存在角色表里，可反复重造。'};
+async function loadVoices(){if(!voices.length){const r=await api(`/projects/${P}/voices`);voices=r.voices;engine=r.engine;roleList=r.roles||[];design=!!r.design;document.body.classList.toggle('az',engine==='azure')}}
 async function refreshVoices(){voices=[];try{await api(`/projects/${P}/voices?refresh=1`)}catch(e){alert(e.message)}voices=[];loadChars()}
 const vinfo=id=>voices.find(v=>v.id===id)||{};
-function voiceOpts(cur){return voices.map(v=>`<option value="${v.id}" ${v.id===cur?'selected':''}>${v.id.replace('Neural','')}${v.name?' '+v.name:''}${v.gender?' · '+(v.gender==='Female'?'女':'男'):''}${v.persona?.length?' · '+v.persona.join('/'):''}${v.roles?.length?' · 年龄可调':''}</option>`).join('')}
+const esc=s=>(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function voiceOpts(cur){return voices.map(v=>`<option value="${v.id}" ${v.id===cur?'selected':''}>${v.id.replace('Neural','').replace(/^design:/,'★ ')}${v.name&&!v.id.endsWith(v.name)?' '+v.name:''}${v.gender?' · '+(v.gender==='Female'?'女':'男'):''}${v.persona?.length?' · '+v.persona.join('/'):''}${v.roles?.length?' · 年龄可调':''}</option>`).join('')}
 const ROLE_ZH={Girl:'女孩',Boy:'男孩',YoungAdultFemale:'青年女',YoungAdultMale:'青年男',OlderAdultFemale:'中年女',OlderAdultMale:'中年男',SeniorFemale:'老年女',SeniorMale:'老年男'};
 function styleCell(voice,cur,ph,onch){
  const esc=s=>(s||'').replace(/"/g,'&quot;');
@@ -267,17 +269,30 @@ async function loadChars(){
   const r=x._r;
   return `<tr data-i="${i}"><td><b>${x.name}</b>${r.aliases?.length?'<br><span class="muted">'+r.aliases.join(' / ')+'</span>':''}</td><td>${x.type||''}</td>
   <td><span class="muted">${r.traits||''}</span><br>${r.tone||''}</td>
-  <td><select class="v" ${!r.voice?'style="border-color:var(--bad)"':''} onchange="onVoiceChange(this)"><option value="">（未指定）</option>${voiceOpts(r.voice)}</select></td>
+  <td><select class="v" ${!r.voice?'style="border-color:var(--bad)"':''} onchange="onVoiceChange(this)"><option value="">（未指定）</option>${voiceOpts(r.voice)}</select>${design?`<div style="display:flex;gap:4px;margin-top:4px"><input type="text" class="vd" value="${esc(r.voice_desc||[r.traits,r.tone&&'语气'+r.tone].filter(Boolean).join('，'))}" placeholder="描述：性别 / 年龄 / 音色 / 语气" style="flex:1;min-width:160px"><button onclick="designVoice(this)" title="按描述生成专属声线并选中">造声线</button></div>`:''}</td>
   <td><input type="text" class="r" value="${r.rate||'0%'}" style="width:64px"></td>
   <td><input type="text" class="pt" value="${r.pitch||'0Hz'}" style="width:64px"></td>
   <td class="stc" style="width:150px">${styleCell(r.voice,r.style||'')}</td>
   <td class="rlc azonly" style="width:110px">${roleCell(r.voice,r.role||'')}</td>
   <td><button onclick="preview(this)">▶</button> <audio class="pa"></audio></td></tr>`}).join('');
  window._rows=rows;
- $('#charsHint').innerHTML=HINT[engine]+(engine==='azure'?' <a href="#" onclick="refreshVoices();return false">刷新声线列表</a>':'')+' 保存后到「⑤ 生成音频」重跑，未改动的台词走缓存。';
- if(engine==='openai'&&!voices.length)$('#charsHint').innerHTML='<b style="color:var(--bad)">当前引擎未配置声线列表</b>：到设置页填 tts_voices（逗号分隔）。';
+ $('#charsHint').innerHTML=HINT[design?'design':engine]+(engine==='azure'?' <a href="#" onclick="refreshVoices();return false">刷新声线列表</a>':'')+' 保存后到「⑤ 生成音频」重跑，未改动的台词走缓存。';
+ if(engine==='openai'&&!voices.length&&!design)$('#charsHint').innerHTML='<b style="color:var(--bad)">当前引擎未配置声线列表</b>：确认 tts_base_url 服务已启动，或到设置页填 tts_voices（逗号分隔）。';
 }
-function rowCfg(tr){return{voice:tr.querySelector('.v').value,rate:tr.querySelector('.r').value,pitch:tr.querySelector('.pt').value,style:tr.querySelector('.st')?.value||'',role:tr.querySelector('.rl')?.value||''}}
+function rowCfg(tr){const c={voice:tr.querySelector('.v').value,rate:tr.querySelector('.r').value,pitch:tr.querySelector('.pt').value,style:tr.querySelector('.st')?.value||'',role:tr.querySelector('.rl')?.value||''};const vd=tr.querySelector('.vd');if(vd)c.voice_desc=vd.value;return c}
+async function designVoice(btn){
+ const tr=btn.closest('tr'),i=tr.dataset.i,name=window._rows[i].name,instruct=tr.querySelector('.vd').value.trim();
+ if(!instruct)return alert('先写声线描述');
+ btn.disabled=true;btn.textContent='生成中…';
+ try{
+  const r=await fetch(`/api/projects/${P}/voice-design`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({name,instruct,text:$('#pvText').value})});
+  if(!r.ok)throw new Error((await r.json()).detail||r.status);
+  const id=r.headers.get('X-Voice-Id');const a=tr.querySelector('.pa');a.src=URL.createObjectURL(await r.blob());a.play();
+  voices=[];await loadVoices();tr.querySelector('.v').innerHTML='<option value="">（未指定）</option>'+voiceOpts(id);tr.querySelector('.v').style.borderColor='';
+  $('#charsMsg').textContent=`已生成 ${id}，记得保存角色表`;
+ }catch(e){alert('造声线失败：'+e.message)}
+ btn.disabled=false;btn.textContent='造声线';
+}
 async function preview(btn,text){
  const tr=btn.closest('tr'),c=rowCfg(tr);if(!c.voice)return alert('先选声线');
  btn.disabled=true;
@@ -435,7 +450,7 @@ async function useForCue(x){
 
 // ---- config ----
 const CFG_DESC={gap_ms:'句间静音 (ms)',scene_gap_ms:'幕间静音 (ms)',sfx_gap_ms:'音效后静音 (ms)',bgm_db:'BGM 音量 (dB，负数更轻)',sfx_db:'音效音量 (dB)',fade_ms:'BGM 淡入淡出 (ms)',bitrate:'导出码率',tts_concurrency:'TTS 并发数',
- tts_engine:'TTS 引擎：edge（免费在线，7 声线）/ azure（Azure Speech 免费层 50 万字/月，20+ 声线 + 情感风格 + 年龄；.env 填 AZURE_SPEECH_KEY、AZURE_SPEECH_REGION）/ openai（任何 OpenAI 兼容 /v1/audio/speech 本地服务）',tts_base_url:'openai 引擎地址，如 http://127.0.0.1:8880/v1；密钥填 .env 的 TTS_API_KEY',tts_model:'openai 引擎 model（空=tts-1）',tts_voices:'openai 引擎可选声线，逗号分隔',
+ tts_engine:'TTS 引擎：edge（免费在线，7 声线）/ azure（Azure Speech 免费层 50 万字/月，20+ 声线 + 情感风格 + 年龄；.env 填 AZURE_SPEECH_KEY、AZURE_SPEECH_REGION）/ openai（任何 OpenAI 兼容 /v1/audio/speech 本地服务）',tts_base_url:'openai 引擎地址，如 http://127.0.0.1:8880/v1（本地 Qwen3-TTS：另开终端跑 trpgv tts-server）；密钥填 .env 的 TTS_API_KEY',tts_model:'openai 引擎 model（空=tts-1）',tts_voices:'openai 引擎手填声线，逗号分隔（服务提供 /voices 时可留空）',
  script_smart:'剧本默认用 sonnet（更贵）'};
 let cfgData=null;
 async function loadCfg(){

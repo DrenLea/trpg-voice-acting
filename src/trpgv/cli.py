@@ -45,7 +45,23 @@ def main() -> None:
     af = sub.add_parser("assets", help="按 out/missing_assets.txt 从 Openverse 自动下载音效/BGM")
     af.add_argument("-w", "--work", type=Path, required=True)
 
+    ts = sub.add_parser("tts-server", help="启动本地 Qwen3-TTS 服务（描述造声线 + 克隆），需 GPU 与 pip install trpgv[qwen]")
+    ts.add_argument("--port", type=int, default=8880)
+    ts.add_argument("--base", default="Qwen/Qwen3-TTS-12Hz-1.7B-Base", help="克隆模型（显存紧张可用 0.6B-Base）")
+    ts.add_argument("--design", default="Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign")
+    ts.add_argument("--dir", type=Path, default=Path("assets/voices_qwen"), help="设计声线存放目录")
+    ts.add_argument("--device", default="cuda")
+    ts.add_argument("--keep-design", action="store_true", help="造声线后不卸载设计模型（需 ≥12GB 显存）")
+
     args = ap.parse_args()
+
+    if args.cmd == "tts-server":
+        from . import ttsserver
+
+        os.chdir(Path(__file__).resolve().parents[2])
+        print(f"http://127.0.0.1:{args.port}/v1  ← 填到工作台设置 tts_base_url，tts_engine=openai")
+        ttsserver.serve(args.port, args.base, args.design, args.dir, args.device, args.keep_design)
+        return
 
     if args.cmd == "assets":
         from . import assets as ov

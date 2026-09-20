@@ -14,6 +14,10 @@ dependencies = [
     "python-multipart>=0.0.9",
 ]
 
+[project.optional-dependencies]
+# 本地 Qwen3-TTS 服务（trpgv tts-server）：需 NVIDIA 显卡；torch 请按 CUDA 版本自行安装
+qwen = ["qwen-tts", "soundfile", "numpy"]
+
 [project.scripts]
 trpgv = "trpgv.cli:main"
 

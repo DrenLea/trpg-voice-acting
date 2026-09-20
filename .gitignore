@@ -24,6 +24,8 @@ assets/bgm/*
 !assets/bgm/.gitkeep
 # Azure 声线清单按账号在线拉取（工作台自动 / trpgv voices --azure）
 assets/voices_azure.json
+# trpgv tts-server 生成的设计声线参考音
+assets/voices_qwen/
 
 # python
 __pycache__/

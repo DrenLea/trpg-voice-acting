@@ -76,6 +76,26 @@ def _post(url: str, data: bytes, hdr: dict, out: Path) -> None:
         out.write_bytes(r.read())
 
 
+def _auth(eng: dict) -> dict:
+    return {"Authorization": f"Bearer {eng['key']}"} if eng.get("key") else {}
+
+
+def get_json(url: str, eng: dict, timeout: int = 5):
+    import urllib.request
+
+    with urllib.request.urlopen(urllib.request.Request(url, headers=_auth(eng)), timeout=timeout) as r:
+        return json.loads(r.read())
+
+
+def post_raw(url: str, body: dict, eng: dict, timeout: int = 120) -> tuple[bytes, dict]:
+    """POST JSON，返回 (响应字节, 小写键的响应头)。"""
+    import urllib.request
+
+    req = urllib.request.Request(url, json.dumps(body).encode(), {"Content-Type": "application/json", **_auth(eng)})
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        return r.read(), {k.lower(): v for k, v in r.headers.items()}
+
+
 def azure_ssml(cfg: dict, text: str) -> str:
     from xml.sax.saxutils import escape
 

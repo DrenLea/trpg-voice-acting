@@ -12,7 +12,8 @@
 
 - **省 token**：解析、正则清洗、合并、缓存全用代码；LLM 只做判定与改写，按块/按幕处理，默认 `claude-haiku-4-5`（实测比 sonnet 更守剧本格式）。
 - **不改剧情**：提示词硬规则——不增删情节、不改人设、不添加原文没有的心理活动；三类格式校验 + 带错误反馈自动重试。
-- **免费声线库，引擎可换**：默认 edge-tts 14 个中文神经声线，可试听选择；填一个 Azure Speech 免费密钥（每月 50 万字）即可扩到 20+ 声线，含童声、情感风格与年龄（男孩 / 女孩 / 中年 / 老年）；也可一键切到任何 OpenAI 兼容 `/v1/audio/speech` 本地服务（Kokoro-FastAPI、CosyVoice、Qwen3-TTS 等），角色语气自动作为风格指令传入。不做真人声线克隆。
+- **免费声线库，引擎可换**：默认 edge-tts 14 个中文神经声线，可试听选择；填一个 Azure Speech 免费密钥（每月 50 万字）即可扩到 20+ 声线，含童声、情感风格与年龄（男孩 / 女孩 / 中年 / 老年）；也可一键切到任何 OpenAI 兼容 `/v1/audio/speech` 本地服务，角色语气自动作为风格指令传入。不做真人声线克隆。
+- **一句话造声线**：有 NVIDIA 显卡的机器跑 `trpgv tts-server`（Qwen3-TTS，Apache 2.0），在角色表写「六十岁男性，沙哑低沉，语速慢」点「造声线」，就得到该角色专属、全剧一致的音色——不依赖任何预置声线库。
 - **台词级微调**：剧本页可对单句覆盖声线 / 语速 / 音调 / 风格 / 年龄，留空即用角色默认，只重合成改动的句子。
 - **免费素材库**：Openverse API（Freesound 音效 + Jamendo 音乐，CC 授权，无需密钥）按剧本描述自动检索下载，自动记录署名。
 - **可监修**：剧本是 Markdown（`【角色】台词` / `[音效]` / `「BGM: …」`），改一幕只重跑一幕；TTS 按行缓存，只重合成改动的台词。
@@ -40,6 +41,7 @@ trpgv all samples/xxx.txt -w work/xxx      # parse → clean → chars → scrip
 trpgv script -w work/xxx --scene 3         # 监修后只重跑第 3 幕
 trpgv assets -w work/xxx                   # 按缺失清单从 Openverse 自动下载音效/BGM
 trpgv audio  -w work/xxx                   # 重新合成混音（未改动的台词走缓存）
+trpgv tts-server                           # GPU 机器：本地 Qwen3-TTS 服务（需 uv pip install -e ".[qwen]" 并按 CUDA 版本装 torch）
 ```
 
 支持 `.txt` / `.docx`，记录格式为 `<[昵称]角色>:内容`（骰娘昵称含"骰子"）。其他格式改 `src/trpgv/parse.py` 里的一条正则即可。
@@ -78,7 +80,8 @@ Turn text-based TRPG session logs into a multi-voice audio drama: **clean → sp
 
 - **Token-frugal**: parsing, regex cleaning, merging and caching are plain code; the LLM only judges and rewrites, chunk-by-chunk / scene-by-scene, defaulting to `claude-haiku-4-5` (empirically more format-compliant than sonnet for this task).
 - **Plot-faithful**: hard prompt rules — no added or removed plot, no personality drift, no invented inner monologue; three format validators with error-fed automatic retry.
-- **Free voices, swappable engine**: 14 Chinese neural voices from edge-tts by default, previewable in the UI; add a free Azure Speech key (500k chars/month) to unlock 20+ voices with child voices, emotional styles and age roles (boy / girl / older / senior); or switch to any OpenAI-compatible `/v1/audio/speech` local server (Kokoro-FastAPI, CosyVoice, Qwen3-TTS…) — each character's tone is passed as the style instruction. No voice cloning.
+- **Free voices, swappable engine**: 14 Chinese neural voices from edge-tts by default, previewable in the UI; add a free Azure Speech key (500k chars/month) to unlock 20+ voices with child voices, emotional styles and age roles (boy / girl / older / senior); or switch to any OpenAI-compatible `/v1/audio/speech` local server — each character's tone is passed as the style instruction. No voice cloning.
+- **Voice from a sentence**: on a machine with an NVIDIA GPU, run `trpgv tts-server` (Qwen3-TTS, Apache 2.0), type "man in his sixties, hoarse and low, slow" next to a character and click *design* — the character gets its own voice, consistent across the whole drama, independent of any preset voice library.
 - **Per-line tuning**: override voice / rate / pitch / style / age for a single line from the script page; blank fields fall back to the character; only changed lines are re-synthesized.
 - **Free asset library**: Openverse API (Freesound SFX + Jamendo music, CC-licensed, no API key) searched automatically from script cues, with attribution recorded.
 - **Reviewable**: the script is Markdown (`【Role】line` / `[sfx]` / `「BGM: …」`); edit one scene, rerun one scene; TTS is cached per line.
@@ -106,6 +109,7 @@ trpgv all samples/xxx.txt -w work/xxx      # parse → clean → chars → scrip
 trpgv script -w work/xxx --scene 3         # rerun only scene 3 after review
 trpgv assets -w work/xxx                   # auto-download missing SFX/BGM from Openverse
 trpgv audio  -w work/xxx                   # remix (unchanged lines hit the cache)
+trpgv tts-server                           # GPU box: local Qwen3-TTS server (uv pip install -e ".[qwen]" + torch for your CUDA)
 ```
 
 Accepts `.txt` / `.docx`. Log lines look like `<[nickname]role>:text` (dice bot nickname contains "骰子"). Adjust the single regex in `src/trpgv/parse.py` for other exporters.
