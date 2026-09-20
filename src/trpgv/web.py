@@ -11,7 +11,7 @@ from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import tts
+from . import config, tts
 
 WORK, ASSETS = Path("work"), Path("assets")
 STATIC = Path(__file__).parent / "static"
@@ -91,7 +91,7 @@ def run(p: str, step: str, scene: int | None = None, smart: bool = False):
     if step == "script":
         if scene:
             args += ["--scene", str(scene)]
-        if smart:
+        if smart or (not scene and config.load(d)["script_smart"]):
             args.append("--smart")
     log = (d / "log.txt").open("w", encoding="utf-8")
     procs[p] = subprocess.Popen(args, stdout=log, stderr=subprocess.STDOUT,
@@ -208,7 +208,10 @@ def ov_search(q: str, kind: str = "sfx", n: int = 8):
     from . import assets as ov
 
     eq = ov.to_query(q)
-    return {"query": eq, "results": ov.search(eq, kind, n)}
+    if re.search(r"[一-鿿]", eq):
+        eq = ov.translate_batch([q]).get(q, eq)
+    used, res = ov.search_relaxed(eq, kind, n)
+    return {"query": used, "results": res}
 
 
 class Grab(BaseModel):
@@ -240,6 +243,61 @@ def autofill(p: str):
 def outputs(p: str):
     o = _work(p) / "out"
     return [f.name for f in sorted(o.glob("*.mp3"))] if o.exists() else []
+
+
+# ---------- config / cues ----------
+@app.get("/api/projects/{p}/config")
+def get_config(p: str):
+    return {"values": config.load(_work(p)), "defaults": config.DEFAULTS}
+
+
+@app.put("/api/projects/{p}/config")
+def put_config(p: str, data: dict):
+    return config.save(_work(p), data)
+
+
+@app.get("/api/projects/{p}/cues")
+def cues(p: str):
+    """剧本中出现的全部 BGM/SFX 标注，按顺序，附当前解析到的文件。"""
+    from .mix import _tags, resolve
+    from .scriptfmt import parse_script
+
+    d = _work(p)
+    sp = d / "script.md"
+    if not sp.exists():
+        return []
+    tags, ov = _tags(), config.load_cues(d)
+    out, scene = [], ""
+    for i, e in enumerate(parse_script(sp)):
+        if e.kind == "scene":
+            scene = f"第{e.a}幕 {e.b}"
+        elif e.kind in ("bgm", "sfx"):
+            if e.kind == "bgm" and e.a.strip() in ("无", "停止", "none"):
+                continue
+            f, db, src = resolve(e.kind, e.a, tags, ov)
+            out.append({"i": i, "kind": e.kind, "desc": e.a, "scene": scene,
+                        "file": f"{f.parent.name}/{f.name}" if f else "", "db": db, "src": src})
+    return out
+
+
+class CueBody(BaseModel):
+    kind: str
+    desc: str
+    file: str | None = None   # None=自动匹配；""=静音；"bgm/x.mp3"=指定
+    db: int | None = None
+
+
+@app.put("/api/projects/{p}/cues")
+def put_cue(p: str, b: CueBody):
+    d = _work(p)
+    cs = config.load_cues(d)
+    k = f"{b.kind}:{b.desc}"
+    if b.file is None and b.db is None:
+        cs.pop(k, None)
+    else:
+        cs[k] = {"file": b.file, "db": b.db}
+    config.save_cues(d, cs)
+    return {"ok": True}
 
 
 WORK.mkdir(exist_ok=True)

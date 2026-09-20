@@ -39,7 +39,8 @@ h3{margin:14px 0 6px;font-size:15px}
 <main>
 <nav>
  <button data-t="imp" class="on">① 导入</button><button data-t="chars">② 角色与声线</button>
- <button data-t="script">③ 剧本</button><button data-t="assets">④ 音效/BGM</button><button data-t="audio">⑤ 生成音频</button>
+ <button data-t="script">③ 剧本</button><button data-t="assets">④ 素材库</button><button data-t="cues">⑤ 音轨</button>
+ <button data-t="audio">⑥ 生成音频</button><button data-t="cfg">⚙ 设置</button>
 </nav>
 
 <section id="imp" class="on">
@@ -92,9 +93,26 @@ h3{margin:14px 0 6px;font-size:15px}
  <table id="assetTbl"><thead><tr><th>类型</th><th>文件</th><th>关键词（可编辑，回车保存）</th><th>试听</th></tr></thead><tbody></tbody></table>
 </section>
 
+<section id="cues">
+ <div class="row"><span class="muted">剧本中每处 BGM / 音效标注。下拉换素材库文件、静音、调音量，或点「搜索」在线找替代；改完到「⑥ 生成音频」重混。</span>
+  <label style="margin-left:auto"><input type="checkbox" id="cueOnlyBgm" onchange="renderCues()"> 只看 BGM</label></div>
+ <table id="cueTbl"><thead><tr><th style="width:110px">位置</th><th>类型</th><th>剧本描述</th><th style="width:280px">当前素材</th><th>音量 dB</th><th>试听</th><th></th></tr></thead><tbody></tbody></table>
+ <div id="cueSearch" hidden style="margin-top:12px;border-top:1px solid var(--line);padding-top:10px">
+  <div class="row"><b id="cueSearchTitle"></b><input type="text" id="cueQ" style="width:260px" onkeydown="if(event.key==='Enter')cueSearch()">
+   <button class="p" onclick="cueSearch()">搜索 Openverse</button><span id="cueMsg" class="muted"></span><button onclick="$('#cueSearch').hidden=true">关闭</button></div>
+  <div id="cueRes"></div>
+ </div>
+</section>
+
 <section id="audio">
- <div class="row"><button class="p" onclick="runStep('audio')">合成 + 混音</button><span class="muted">按行缓存，只重合成改动过的台词</span></div>
+ <div class="row"><button class="p" onclick="runStep('audio')">合成 + 混音</button><span class="muted">按行缓存，只重合成改动过的台词；音轨/设置改动会在重混时生效</span></div>
  <div id="outs"></div>
+</section>
+
+<section id="cfg">
+ <div class="row"><button class="p" onclick="saveCfg()">保存设置</button><button onclick="resetCfg()">恢复默认</button><span id="cfgMsg"></span></div>
+ <table id="cfgTbl"><thead><tr><th>项</th><th>说明</th><th>值</th><th>默认</th></tr></thead><tbody></tbody></table>
+ <p class="muted">保存到 <code>work/&lt;项目&gt;/config.json</code>，只影响本项目。</p>
 </section>
 </main>
 
@@ -116,7 +134,7 @@ async function loadProjects(){
  $('#steps').innerHTML=cur?['lines','clean','chars','script','audio'].map(k=>`<span class="step ${cur.has[k]?'done':''}" title="${k}"></span>`).join(''):'';
 }
 async function refreshAll(){await loadProjects();refreshTab(document.querySelector('nav button.on').dataset.t)}
-function refreshTab(t){if(!P)return;({chars:loadChars,script:loadScenes,assets:loadAssets,audio:loadOuts})[t]?.()}
+function refreshTab(t){if(!P)return;({chars:loadChars,script:loadScenes,assets:loadAssets,audio:loadOuts,cues:loadCues,cfg:loadCfg})[t]?.()}
 
 async function createProj(){
  const name=$('#newName').value.trim(),f=$('#newFile').files[0];
@@ -228,6 +246,66 @@ async function loadOuts(){
  const fs=await api(`/projects/${P}/out`);
  $('#outs').innerHTML=fs.length?fs.map(f=>`<div class="row"><span style="width:200px">${f}</span><audio controls preload="none" src="/work/${encodeURIComponent(P)}/out/${encodeURIComponent(f)}?t=${Date.now()}"></audio><a href="/work/${encodeURIComponent(P)}/out/${encodeURIComponent(f)}" download>下载</a></div>`).join(''):'<span class="muted">尚未生成</span>';
 }
+
+// ---- cues ----
+let cueList=[], lib={}, cueCur=null;
+async function loadCues(){
+ [cueList,lib]=await Promise.all([api(`/projects/${P}/cues`),api('/assets')]);renderCues();
+}
+function renderCues(){
+ const onlyBgm=$('#cueOnlyBgm').checked;
+ const opt=(k,cur)=>{const files=Object.entries(lib[k]||{}).filter(([,x])=>x.exists).map(([f])=>`${k}/${f}`);
+  return `<option value="__auto">（自动匹配）</option><option value="">（静音）</option>`+files.map(f=>`<option value="${f}" ${f===cur?'selected':''}>${f.split('/')[1]}</option>`).join('')};
+ const srcTag={override:'<span class="tag" style="background:#dfe9d8">手选</span>',muted:'<span class="tag">静音</span>',auto:'<span class="tag" style="background:#e8e2f5">自动</span>',missing:'<span class="tag bad">缺失</span>'};
+ $('#cueTbl tbody').innerHTML=cueList.filter(c=>!onlyBgm||c.kind==='bgm').map(c=>`<tr data-i="${c.i}">
+  <td class="muted">${c.scene}</td><td>${c.kind==='bgm'?'BGM':'音效'}</td><td>${c.desc}</td>
+  <td>${srcTag[c.src]} <select class="cf" onchange="setCue(${c.i},this.value)" style="max-width:190px">${opt(c.kind,c.file)}</select></td>
+  <td><input type="number" class="cdb" value="${c.db??''}" placeholder="默认" style="width:60px" onchange="setCueDb(${c.i},this.value)"></td>
+  <td>${c.file?`<audio controls preload="none" src="/assets/${c.file}" style="width:180px"></audio>`:''}</td>
+  <td><button onclick="openCueSearch(${c.i})">搜索</button></td></tr>`).join('')||'<tr><td colspan=7 class="muted">剧本中没有 BGM/音效标注</td></tr>';
+ // 自动/静音状态下拉框显示对应项
+ document.querySelectorAll('#cueTbl tr[data-i]').forEach(tr=>{const c=cueList.find(x=>x.i==tr.dataset.i);const s=tr.querySelector('.cf');
+  if(c.src==='auto'||c.src==='missing')s.value='__auto';else if(c.src==='muted')s.value=''});
+}
+function putCue(c,file,db){return api(`/projects/${P}/cues`,{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify({kind:c.kind,desc:c.desc,file,db})}).then(loadCues)}
+function cueFile(c){return c.src==='override'?c.file:c.src==='muted'?'':null}
+function setCue(i,v){const c=cueList.find(x=>x.i===i);putCue(c,v==='__auto'?null:v,c.db)}
+function setCueDb(i,v){const c=cueList.find(x=>x.i===i);putCue(c,cueFile(c),v===''?null:+v)}
+function openCueSearch(i){
+ cueCur=cueList.find(x=>x.i===i);$('#cueSearch').hidden=false;
+ $('#cueSearchTitle').textContent=`${cueCur.kind==='bgm'?'BGM':'音效'}：${cueCur.desc}`;$('#cueQ').value=cueCur.desc;$('#cueRes').innerHTML='';cueSearch();
+}
+async function cueSearch(){
+ $('#cueMsg').textContent='搜索中…';
+ const r=await api(`/openverse/search?`+new URLSearchParams({q:$('#cueQ').value,kind:cueCur.kind,n:10}));
+ $('#cueMsg').textContent=`检索词: ${r.query}`;
+ $('#cueRes').innerHTML=r.results.map(x=>x.error?`<div class="bad">${x.error}</div>`:
+  `<div class="row" style="border-bottom:1px solid var(--line);padding:4px 0"><audio controls preload="none" src="${x.url}" style="width:220px"></audio>
+   <span style="flex:1"><b>${x.title}</b> <span class="muted">${x.duration}s · ${x.source} · ${x.license}</span></span>
+   <button class="p" onclick='useForCue(${JSON.stringify(x)})'>用于此处</button></div>`).join('')||'<span class="muted">无结果</span>';
+}
+async function useForCue(x){
+ const name=(cueCur.desc.slice(0,12)+'_'+x.id.slice(0,6)).replace(/[\\/:*?"<>|]/g,'_');
+ const r=await api('/openverse/grab',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({url:x.url,kind:cueCur.kind,name,kws:'',attribution:x.attribution})});
+ await putCue(cueCur,`${cueCur.kind}/${r.file}`,cueCur.db);
+ $('#cueSearch').hidden=true;
+}
+
+// ---- config ----
+const CFG_DESC={gap_ms:'句间静音 (ms)',scene_gap_ms:'幕间静音 (ms)',sfx_gap_ms:'音效后静音 (ms)',bgm_db:'BGM 音量 (dB，负数更轻)',sfx_db:'音效音量 (dB)',fade_ms:'BGM 淡入淡出 (ms)',bitrate:'导出码率',tts_concurrency:'TTS 并发数',script_smart:'剧本默认用 sonnet（更贵）'};
+let cfgData=null;
+async function loadCfg(){
+ cfgData=await api(`/projects/${P}/config`);
+ $('#cfgTbl tbody').innerHTML=Object.entries(cfgData.defaults).map(([k,d])=>{const v=cfgData.values[k];
+  const inp=typeof d==='boolean'?`<input type="checkbox" data-k="${k}" ${v?'checked':''}>`:typeof d==='number'?`<input type="number" data-k="${k}" value="${v}" style="width:90px">`:`<input type="text" data-k="${k}" value="${v}" style="width:90px">`;
+  return `<tr><td><code>${k}</code></td><td class="muted">${CFG_DESC[k]||''}</td><td>${inp}</td><td class="muted">${d}</td></tr>`}).join('');
+}
+async function saveCfg(){
+ const data={};document.querySelectorAll('#cfgTbl input').forEach(i=>{const d=cfgData.defaults[i.dataset.k];data[i.dataset.k]=typeof d==='boolean'?i.checked:typeof d==='number'?+i.value:i.value});
+ await api(`/projects/${P}/config`,{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify(data)});
+ $('#cfgMsg').textContent='已保存';setTimeout(()=>$('#cfgMsg').textContent='',1500);loadCfg();
+}
+async function resetCfg(){await api(`/projects/${P}/config`,{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify(cfgData.defaults)});loadCfg()}
 
 refreshAll();
 </script></body></html>

@@ -75,6 +75,19 @@ def search(q: str, kind: str, n: int = 8) -> list[dict]:
     return out
 
 
+def search_relaxed(q: str, kind: str, n: int = 8) -> tuple[str, list[dict]]:
+    """多词 AND 无结果时逐步去掉末尾词，返回 (实际检索词, 结果)。"""
+    words = q.split()
+    for k in range(len(words), 0, -1):
+        qq = " ".join(words[:k])
+        res = search(qq, kind, n)
+        if res and "error" not in res[0]:
+            return qq, res
+        if res and "error" in res[0]:
+            return qq, res
+    return q, []
+
+
 def download(url: str, kind: str, name: str, kws: list[str], attribution: str = "") -> Path:
     d = ASSETS / kind
     d.mkdir(parents=True, exist_ok=True)
@@ -112,19 +125,13 @@ def auto_fill(missing: list[str], max_dur: dict[str, int] | None = None) -> list
     log = []
     for kind, desc in items:
         q0 = queries[desc]
-        words = q0.split()
-        c = None
-        # 多词 AND 无结果时逐步去掉末尾词回退
-        for k in range(len(words), 0, -1):
-            q = " ".join(words[:k])
-            cands = [c for c in search(q, kind, 10) if "error" not in c and c["duration"] > 0]
-            fit = [c for c in cands if c["duration"] <= max_dur[kind]] or [c for c in cands if c["duration"] <= max_dur[kind] * 2]
-            if fit:
-                c = fit[0]
-                break
-        if not c:
+        q, cands = search_relaxed(q0, kind, 10)
+        cands = [c for c in cands if "error" not in c and c["duration"] > 0]
+        fit = [c for c in cands if c["duration"] <= max_dur[kind]] or [c for c in cands if c["duration"] <= max_dur[kind] * 2]
+        if not fit:
             log.append({"desc": desc, "kind": kind, "q": q0, "ok": False})
             continue
+        c = fit[0]
         kws = [desc] + [zh for zh in ZH2EN if zh in desc]
         p = download(c["url"], kind, f"{q.replace(' ', '_')[:40]}_{c['id'][:6]}", kws, c["attribution"])
         log.append({"desc": desc, "kind": kind, "q": q, "ok": True, "file": p.name, "title": c["title"]})

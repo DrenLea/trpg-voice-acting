@@ -15,7 +15,7 @@
 - **免费声线库**：edge-tts 14 个中文神经声线，可试听选择，不做真人声线克隆。
 - **免费素材库**：Openverse API（Freesound 音效 + Jamendo 音乐，CC 授权，无需密钥）按剧本描述自动检索下载，自动记录署名。
 - **可监修**：剧本是 Markdown（`【角色】台词` / `[音效]` / `「BGM: …」`），改一幕只重跑一幕；TTS 按行缓存，只重合成改动的台词。
-- **Web 工作台**：导入、运行、选声线试听、改剧本、找素材、试听成片，一页搞定。
+- **Web 工作台**：导入、运行、选声线试听、改剧本、找素材、逐段替换/静音/调音量 BGM 与音效、混音参数设置、试听成片，一页搞定。
 
 ### 安装
 
@@ -80,7 +80,7 @@ Turn text-based TRPG session logs into a multi-voice audio drama: **clean → sp
 - **Free voice library**: 14 Chinese neural voices from edge-tts, previewable in the UI. No voice cloning.
 - **Free asset library**: Openverse API (Freesound SFX + Jamendo music, CC-licensed, no API key) searched automatically from script cues, with attribution recorded.
 - **Reviewable**: the script is Markdown (`【Role】line` / `[sfx]` / `「BGM: …」`); edit one scene, rerun one scene; TTS is cached per line.
-- **Web workbench**: import, run steps, pick & preview voices, edit scenes, find assets, listen to the result — one page.
+- **Web workbench**: import, run steps, pick & preview voices, edit scenes, find assets, replace / mute / re-level every BGM and SFX cue, tune mix parameters, listen to the result — one page.
 
 ### Install
 

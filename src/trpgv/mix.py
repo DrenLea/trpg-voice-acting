@@ -5,6 +5,7 @@ import imageio_ffmpeg
 import pydub.audio_segment
 from pydub import AudioSegment
 
+from .config import DEFAULTS
 from .scriptfmt import Ev
 
 AudioSegment.converter = imageio_ffmpeg.get_ffmpeg_exe()
@@ -12,8 +13,6 @@ AudioSegment.converter = imageio_ffmpeg.get_ffmpeg_exe()
 pydub.audio_segment.mediainfo_json = lambda *a, **k: {}
 
 ASSETS = Path("assets")
-GAP, SCENE_GAP, SFX_GAP = 400, 1500, 300
-BGM_DB, FADE = -18, 2000
 
 
 def _tags() -> dict[str, list[str]]:
@@ -32,13 +31,31 @@ def _find(kind: str, desc: str, tags: dict) -> Path | None:
     return None
 
 
-def _bgm(seg: AudioSegment, length: int) -> AudioSegment:
+def resolve(kind: str, desc: str, tags: dict, cues: dict) -> tuple[Path | None, int | None, str]:
+    """返回 (文件, 音量覆盖, 来源)；来源 override/muted/auto/missing。
+    cues 值 {"file": None=自动 | ""=静音 | "bgm/x.mp3", "db": None|int}。"""
+    ov = cues.get(f"{kind}:{desc}", {})
+    db = ov.get("db")
+    file = ov.get("file")
+    if file == "":
+        return None, None, "muted"
+    if file:
+        p = ASSETS / file
+        if p.exists():
+            return p, db, "override"
+    f = _find(kind, desc, tags)
+    return f, db, "auto" if f else "missing"
+
+
+def _bgm(seg: AudioSegment, length: int, db: int, fade: int) -> AudioSegment:
     while len(seg) < length:
         seg += seg
-    return (seg[:length] + BGM_DB).fade_in(FADE).fade_out(FADE)
+    return (seg[:length] + db).fade_in(fade).fade_out(min(fade, length))
 
 
-def mix(events: list[tuple[Ev, Path | None]], out_dir: Path) -> Path:
+def mix(events: list[tuple[Ev, Path | None]], out_dir: Path, cfg: dict | None = None, cues: dict | None = None) -> Path:
+    cfg = {**DEFAULTS, **(cfg or {})}
+    cues = cues or {}
     tags = _tags()
     missing: list[str] = []
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -48,11 +65,12 @@ def mix(events: list[tuple[Ev, Path | None]], out_dir: Path) -> Path:
     cur_title = "00"
     bgm_start: int | None = None
     bgm_file: Path | None = None
+    bgm_db = cfg["bgm_db"]
 
     def close_bgm(track: AudioSegment) -> AudioSegment:
         nonlocal bgm_start, bgm_file
         if bgm_file and bgm_start is not None and len(track) > bgm_start:
-            music = _bgm(AudioSegment.from_file(bgm_file), len(track) - bgm_start)
+            music = _bgm(AudioSegment.from_file(bgm_file), len(track) - bgm_start, bgm_db, cfg["fade_ms"])
             track = track.overlay(music, position=bgm_start)
         bgm_start, bgm_file = None, None
         return track
@@ -63,7 +81,7 @@ def mix(events: list[tuple[Ev, Path | None]], out_dir: Path) -> Path:
             return
         cur = close_bgm(cur)
         scene_audio.append((cur_title, cur))
-        full += cur + AudioSegment.silent(SCENE_GAP)
+        full += cur + AudioSegment.silent(cfg["scene_gap_ms"])
         cur = AudioSegment.empty()
 
     for e, p in events:
@@ -71,28 +89,29 @@ def mix(events: list[tuple[Ev, Path | None]], out_dir: Path) -> Path:
             flush()
             cur_title = f"{int(e.a):02d}_{e.b}"
         elif e.kind == "line" and p:
-            cur += AudioSegment.from_file(p) + AudioSegment.silent(GAP)
+            cur += AudioSegment.from_file(p) + AudioSegment.silent(cfg["gap_ms"])
         elif e.kind == "sfx":
-            f = _find("sfx", e.a, tags)
+            f, db, src = resolve("sfx", e.a, tags, cues)
             if f:
-                cur += AudioSegment.from_file(f) + AudioSegment.silent(SFX_GAP)
-            else:
+                cur += AudioSegment.from_file(f) + (cfg["sfx_db"] if db is None else db) + AudioSegment.silent(cfg["sfx_gap_ms"])
+            elif src == "missing":
                 missing.append(f"sfx: {e.a}")
         elif e.kind == "bgm":
             cur = close_bgm(cur)
             if e.a.strip() in ("无", "停止", "none"):
                 continue
-            f = _find("bgm", e.a, tags)
+            f, db, src = resolve("bgm", e.a, tags, cues)
             if f:
                 bgm_start, bgm_file = len(cur), f
-            else:
+                bgm_db = cfg["bgm_db"] if db is None else db
+            elif src == "missing":
                 missing.append(f"bgm: {e.a}")
     flush()
 
     for title, seg in scene_audio:
-        seg.export(out_dir / f"{title}.mp3", format="mp3", bitrate="128k")
+        seg.export(out_dir / f"{title}.mp3", format="mp3", bitrate=cfg["bitrate"])
     final = out_dir / "full.mp3"
-    full.export(final, format="mp3", bitrate="128k")
+    full.export(final, format="mp3", bitrate=cfg["bitrate"])
     mp = out_dir / "missing_assets.txt"
     if missing:
         mp.write_text("\n".join(dict.fromkeys(missing)), encoding="utf-8")

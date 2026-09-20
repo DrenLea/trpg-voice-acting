@@ -52,7 +52,7 @@ async def _one(sem: asyncio.Semaphore, cfg: dict, text: str, out: Path) -> None:
         raise RuntimeError(f"tts failed for {cfg['voice']}: {text[:60]!r}") from err
 
 
-def synth(script: Path, chars: dict) -> list[tuple[Ev, Path | None]]:
+def synth(script: Path, chars: dict, concurrency: int = 8) -> list[tuple[Ev, Path | None]]:
     """返回事件序列；line 事件附带音频路径。"""
     CACHE.mkdir(parents=True, exist_ok=True)
     vm = voice_map(chars)
@@ -76,7 +76,7 @@ def synth(script: Path, chars: dict) -> list[tuple[Ev, Path | None]]:
         result.append((e, p))
 
     async def run() -> None:
-        sem = asyncio.Semaphore(8)
+        sem = asyncio.Semaphore(concurrency)
         await asyncio.gather(*(_one(sem, c, t, p) for c, t, p in jobs))
 
     if jobs:

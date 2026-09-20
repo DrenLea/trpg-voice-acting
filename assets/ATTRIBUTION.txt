@@ -25,3 +25,4 @@ bgm/dark_tension_cinematic_1d3022.mp3	"Cinematic Horror Sci-Fi Suspense Tension 
 sfx/engine_rumble_fire_8b20b1.mp3	"AERORckt_Rocket roar 5.Distant.Steady.Crackle_EM_(8lrs).wav" by newlocknew is licensed under CC BY-NC 4.0. To view a copy of this license, visit https://creativecommons.org/licenses/by-nc/4.0/.
 sfx/horse_hooves_carriage_wheels_bffce3.mp3	"horse with old cart.wav" by bruno.auzet is marked with CC0 1.0. To view the terms, visit https://creativecommons.org/publicdomain/zero/1.0/.
 sfx/horse_carriage_320ec3.mp3	"Horse carriage in Vienna" by Urkki69 is marked with CC0 1.0. To view the terms, visit https://creativecommons.org/publicdomain/zero/1.0/.
+bgm/低沉的悬疑弦乐_隐约的钟_8c5385.mp3	"Christmas Clock Ticking (Full version)" by GarnaVutka is licensed under CC BY-NC-ND 3.0. To view a copy of this license, visit https://creativecommons.org/licenses/by-nc-nd/3.0/.

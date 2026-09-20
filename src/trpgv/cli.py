@@ -109,11 +109,12 @@ def main() -> None:
         out = script.build(args.work, model=llm.SMART if args.smart else llm.CHEAP, only=args.scene)
         print(f"-> {out}")
     elif args.cmd == "audio":
-        from . import mix, tts
+        from . import config, mix, tts
 
+        cfg = config.load(args.work)
         chars = tts.load_chars(args.work)
-        events = tts.synth(args.work / "script.md", chars)
-        mix.mix(events, args.work / "out")
+        events = tts.synth(args.work / "script.md", chars, cfg["tts_concurrency"])
+        mix.mix(events, args.work / "out", cfg, config.load_cues(args.work))
 
 
 if __name__ == "__main__":
