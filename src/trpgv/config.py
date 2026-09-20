@@ -10,6 +10,10 @@ DEFAULTS = {
     "fade_ms": 2000,        # BGM 淡入淡出
     "bitrate": "128k",
     "tts_concurrency": 8,
+    "tts_engine": "edge",   # edge | openai（任何 OpenAI 兼容 /v1/audio/speech 服务：Kokoro-FastAPI、CosyVoice、Index-TTS 等）
+    "tts_base_url": "",     # openai 引擎地址，如 http://127.0.0.1:8880/v1；密钥走环境变量 TTS_API_KEY
+    "tts_model": "",        # openai 引擎 model 字段，空则 tts-1
+    "tts_voices": "",       # openai 引擎可选声线，逗号分隔
     "script_smart": False,  # 剧本默认用 sonnet
 }
 
@@ -36,3 +40,13 @@ def load_cues(work: Path) -> dict:
 
 def save_cues(work: Path, cues: dict) -> None:
     (work / "cues.json").write_text(json.dumps(cues, ensure_ascii=False, indent=1), encoding="utf-8")
+
+
+def load_lines(work: Path) -> dict:
+    """{ line_key: {"voice"|"rate"|"pitch"|"style": str} }，行级覆盖角色声线。"""
+    p = work / "lines.json"
+    return json.loads(p.read_text(encoding="utf-8")) if p.exists() else {}
+
+
+def save_lines(work: Path, lines: dict) -> None:
+    (work / "lines.json").write_text(json.dumps(lines, ensure_ascii=False, indent=1), encoding="utf-8")

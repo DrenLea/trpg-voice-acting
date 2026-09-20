@@ -115,7 +115,8 @@ def main() -> None:
 
         cfg = config.load(args.work)
         chars = tts.load_chars(args.work)
-        events = tts.synth(args.work / "script.md", chars, cfg["tts_concurrency"])
+        events = tts.synth(args.work / "script.md", chars, cfg["tts_concurrency"],
+                           tts.engine_from(cfg), config.load_lines(args.work))
         mix.mix(events, args.work / "out", cfg, config.load_cues(args.work))
 
 

@@ -107,8 +107,8 @@ details summary{cursor:pointer}
 <section id="chars">
  <div class="row"><input type="text" id="pvText" value="你好，我是这个角色，这是我的声线试听。" style="width:360px">
   <span class="muted">试听文本</span><button class="p" onclick="saveChars()">保存角色表</button><span id="charsMsg"></span></div>
- <table id="charsTbl"><thead><tr><th>角色</th><th>身份</th><th>性格 / 语气</th><th>声线</th><th>速度</th><th>音调</th><th>试听</th></tr></thead><tbody></tbody></table>
- <p class="muted">声线来自 edge-tts（免费在线）。保存后到「⑤ 生成音频」重跑，未改动的台词走缓存。</p>
+ <table id="charsTbl"><thead><tr><th>角色</th><th>身份</th><th>性格 / 语气</th><th>声线</th><th>速度</th><th>音调</th><th>风格指令</th><th>试听</th></tr></thead><tbody></tbody></table>
+ <p class="muted" id="charsHint">声线来自 edge-tts（免费在线）。「风格指令」只对 openai 兼容引擎生效（设置页 tts_engine），空则用语气栏。保存后到「⑤ 生成音频」重跑，未改动的台词走缓存。</p>
 </section>
 
 <section id="script">
@@ -118,6 +118,9 @@ details summary{cursor:pointer}
   <button onclick="regenScene()">重生成本幕</button><button onclick="saveScene()">保存本幕</button><span id="sceneMsg"></span></div>
  <textarea id="sceneText" placeholder="尚无剧本，先生成。"></textarea>
  <p class="muted">格式：<code>【角色】台词</code>；<code>[音效]</code> 独立行；<code>「BGM: 描述」</code> 仅在切换处。保存后自动重新拼接 script.md。</p>
+ <details id="lineTune" style="margin-top:12px" ontoggle="if(this.open)loadTuneLines()"><summary><b>台词微调</b> <span class="muted">— 单句换声线 / 速度 / 音调 / 风格，留空即用角色默认；改动即存，重跑音频生效</span></summary>
+  <table id="lineTbl" style="margin-top:8px;table-layout:fixed;width:100%"><thead><tr><th style="width:88px">角色</th><th>台词</th><th style="width:200px">声线</th><th style="width:72px">速度</th><th style="width:72px">音调</th><th style="width:150px">风格</th><th style="width:84px"></th></tr></thead><tbody></tbody></table>
+ </details>
 </section>
 
 <section id="assets">
@@ -206,7 +209,7 @@ function renderHome(){
  fill('#listWip','#cntWip',projList.filter(p=>['wip','new','failed'].includes(p.state)));
  fill('#listDone','#cntDone',projList.filter(p=>p.state==='done'));
 }
-function selectProj(n){P=n;localStorage.p=n;$('#proj').value=n;refreshAll();
+function selectProj(n){P=n;localStorage.p=n;$('#proj').value=n;voices=[];refreshAll();
  const p=projList.find(x=>x.name===n);if(p?.state==='running'){$('#run').textContent='运行中: '+p.step;poll()}}
 async function delProj(n){
  if(!confirm(`删除项目「${n}」及其全部产物？`))return;
@@ -237,27 +240,31 @@ function poll(){clearInterval(timer);timer=setInterval(async()=>{
 async function loadLines(){const r=await api(`/projects/${P}/lines`);const t=$('#linesView');t.hidden=false;t.value=r.text}
 
 // ---- chars ----
+let engine='edge';
+async function loadVoices(){if(!voices.length){const r=await api(`/projects/${P}/voices`);voices=r.voices;engine=r.engine}}
+function voiceOpts(cur){return voices.map(v=>`<option value="${v.id}" ${v.id===cur?'selected':''}>${v.id.replace('Neural','')}${v.gender?' · '+(v.gender==='Female'?'女':'男'):''}${v.persona?.length?' · '+v.persona.join('/'):''}</option>`).join('')}
 async function loadChars(){
- if(!voices.length)voices=await api('/voices');
- try{chars=await api(`/projects/${P}/characters`)}catch(e){$('#charsTbl tbody').innerHTML=`<tr><td colspan=7 class="muted">${e.message}</td></tr>`;return}
+ await loadVoices();
+ try{chars=await api(`/projects/${P}/characters`)}catch(e){$('#charsTbl tbody').innerHTML=`<tr><td colspan=8 class="muted">${e.message}</td></tr>`;return}
  const rows=[{name:'旁白',type:'KP',_r:chars.narrator},...chars.roles.map(r=>({name:r.name,type:r.type,_r:r}))];
  $('#charsTbl tbody').innerHTML=rows.map((x,i)=>{
   const r=x._r;
-  const opts=voices.map(v=>`<option value="${v.id}" ${v.id===r.voice?'selected':''}>${v.id.replace('Neural','')} · ${v.gender==='Female'?'女':'男'} · ${v.persona.join('/')}</option>`).join('');
   return `<tr data-i="${i}"><td><b>${x.name}</b>${r.aliases?.length?'<br><span class="muted">'+r.aliases.join(' / ')+'</span>':''}</td><td>${x.type||''}</td>
   <td><span class="muted">${r.traits||''}</span><br>${r.tone||''}</td>
-  <td><select class="v" ${!r.voice?'style="border-color:var(--bad)"':''}><option value="">（未指定）</option>${opts}</select></td>
+  <td><select class="v" ${!r.voice?'style="border-color:var(--bad)"':''}><option value="">（未指定）</option>${voiceOpts(r.voice)}</select></td>
   <td><input type="text" class="r" value="${r.rate||'0%'}" style="width:64px"></td>
   <td><input type="text" class="pt" value="${r.pitch||'0Hz'}" style="width:64px"></td>
+  <td><input type="text" class="st" value="${r.style||''}" placeholder="${engine==='edge'?'（edge 不支持）':'如：低沉、缓慢'}" style="width:140px" ${engine==='edge'?'disabled':''}></td>
   <td><button onclick="preview(this)">▶</button> <audio class="pa"></audio></td></tr>`}).join('');
  window._rows=rows;
+ if(engine!=='edge'&&!voices.length)$('#charsHint').innerHTML='<b style="color:var(--bad)">当前引擎未配置声线列表</b>：到设置页填 tts_voices（逗号分隔）。';
 }
-function rowCfg(tr){return{voice:tr.querySelector('.v').value,rate:tr.querySelector('.r').value,pitch:tr.querySelector('.pt').value}}
-async function preview(btn){
+function rowCfg(tr){return{voice:tr.querySelector('.v').value,rate:tr.querySelector('.r').value,pitch:tr.querySelector('.pt').value,style:tr.querySelector('.st')?.value||''}}
+async function preview(btn,text){
  const tr=btn.closest('tr'),c=rowCfg(tr);if(!c.voice)return alert('先选声线');
  btn.disabled=true;
- const a=tr.querySelector('.pa');a.src=`/api/preview?`+new URLSearchParams({...c,text:$('#pvText').value});
- a.onloadeddata=()=>{btn.disabled=false;a.play()};a.onerror=()=>{btn.disabled=false;alert('试听失败')};
+ const a=tr.querySelector('.pa');a.src=`/api/preview?`+new URLSearchParams({...c,p:P,text:text||$('#pvText').value});
+ a.onloadeddata=()=>{btn.disabled=false;a.play()};a.onerror=()=>{btn.disabled=false;alert('试听失败（引擎未启动或声线无效）')};
 }
 async function saveChars(){
  document.querySelectorAll('#charsTbl tbody tr').forEach(tr=>Object.assign(window._rows[tr.dataset.i]._r,rowCfg(tr)));
@@ -271,12 +278,45 @@ async function loadScenes(){
  scenesData.forEach(s=>sel.add(new Option(`第${s.n}幕 ${s.title}`,s.n)));
  if(cur&&scenesData.find(s=>s.n==cur))sel.value=cur;showScene();
 }
-function showScene(){const s=scenesData.find(x=>x.n==$('#sceneSel').value);$('#sceneText').value=s?s.text:''}
+function showScene(){const s=scenesData.find(x=>x.n==$('#sceneSel').value);$('#sceneText').value=s?s.text:'';if($('#lineTune').open)loadTuneLines()}
 function regenScene(){const n=$('#sceneSel').value;if(!n)return;runStep('script',`?scene=${n}&smart=${$('#smart').checked}`)}
 async function saveScene(){
  const n=$('#sceneSel').value;if(!n)return;
  await api(`/projects/${P}/scenes/${n}`,{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify({text:$('#sceneText').value})});
  $('#sceneMsg').textContent='已保存并重新拼接';setTimeout(()=>$('#sceneMsg').textContent='',1500);loadScenes();
+}
+
+// ---- line tune ----
+let tuneLines=[];
+async function loadTuneLines(){
+ const n=$('#sceneSel').value;if(!n)return;
+ await loadVoices();
+ tuneLines=await api(`/projects/${P}/script-lines?scene=${n}`);
+ const esc=s=>s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+ $('#lineTbl tbody').innerHTML=tuneLines.map((l,i)=>{const o=l.ov,has=Object.keys(o).length;
+  return `<tr data-i="${i}" ${has?'style="background:var(--acc-bg,rgba(108,92,231,.08))"':''}><td style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><b>${esc(l.role)}</b></td><td title="${esc(l.text)}" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(l.text)}</td>
+  <td><select class="v" style="width:100%" onchange="putLine(this)"><option value="">（${l.voice.replace('Neural','')}）</option>${voiceOpts(o.voice||'')}</select></td>
+  <td><input type="text" class="r" value="${o.rate||''}" placeholder="${l.rate||'0%'}" style="width:60px" onchange="putLine(this)"></td>
+  <td><input type="text" class="pt" value="${o.pitch||''}" placeholder="${l.pitch||'0Hz'}" style="width:60px" onchange="putLine(this)"></td>
+  <td><input type="text" class="st" value="${esc(o.style||'')}" placeholder="${engine==='edge'?'—':esc(l.style||'')}" style="width:100%" ${engine==='edge'?'disabled':''} onchange="putLine(this)"></td>
+  <td style="white-space:nowrap"><button onclick="tunePreview(this)">▶</button>${has?`<button onclick="resetLine(this)" title="清除覆盖">↺</button>`:''}<audio class="pa"></audio></td></tr>`}).join('')||'<tr><td colspan=7 class="muted">本幕无台词</td></tr>';
+}
+async function putLine(el){
+ const tr=el.closest('tr'),l=tuneLines[tr.dataset.i],c=rowCfg(tr);
+ await api(`/projects/${P}/script-lines`,{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify({k:l.k,...c})});
+ loadTuneLines();
+}
+async function resetLine(btn){
+ const l=tuneLines[btn.closest('tr').dataset.i];
+ await api(`/projects/${P}/script-lines`,{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify({k:l.k})});
+ loadTuneLines();
+}
+function tunePreview(btn){
+ const tr=btn.closest('tr'),l=tuneLines[tr.dataset.i],c=rowCfg(tr);
+ const eff={voice:c.voice||l.voice,rate:c.rate||l.rate,pitch:c.pitch||l.pitch,style:c.style||l.style};
+ btn.disabled=true;const a=tr.querySelector('.pa');
+ a.src=`/api/preview?`+new URLSearchParams({...eff,p:P,text:l.text.replace(/\n/g,'，')});
+ a.onloadeddata=()=>{btn.disabled=false;a.play()};a.onerror=()=>{btn.disabled=false;alert('试听失败')};
 }
 
 // ---- assets ----
@@ -375,17 +415,20 @@ async function useForCue(x){
 }
 
 // ---- config ----
-const CFG_DESC={gap_ms:'句间静音 (ms)',scene_gap_ms:'幕间静音 (ms)',sfx_gap_ms:'音效后静音 (ms)',bgm_db:'BGM 音量 (dB，负数更轻)',sfx_db:'音效音量 (dB)',fade_ms:'BGM 淡入淡出 (ms)',bitrate:'导出码率',tts_concurrency:'TTS 并发数',script_smart:'剧本默认用 sonnet（更贵）'};
+const CFG_DESC={gap_ms:'句间静音 (ms)',scene_gap_ms:'幕间静音 (ms)',sfx_gap_ms:'音效后静音 (ms)',bgm_db:'BGM 音量 (dB，负数更轻)',sfx_db:'音效音量 (dB)',fade_ms:'BGM 淡入淡出 (ms)',bitrate:'导出码率',tts_concurrency:'TTS 并发数',
+ tts_engine:'TTS 引擎：edge（免费在线）或 openai（任何 OpenAI 兼容 /v1/audio/speech 本地服务：Kokoro-FastAPI、CosyVoice、Index-TTS…）',tts_base_url:'openai 引擎地址，如 http://127.0.0.1:8880/v1；密钥填 .env 的 TTS_API_KEY',tts_model:'openai 引擎 model（空=tts-1）',tts_voices:'openai 引擎可选声线，逗号分隔',
+ script_smart:'剧本默认用 sonnet（更贵）'};
 let cfgData=null;
 async function loadCfg(){
  cfgData=await api(`/projects/${P}/config`);
  $('#cfgTbl tbody').innerHTML=Object.entries(cfgData.defaults).map(([k,d])=>{const v=cfgData.values[k];
-  const inp=typeof d==='boolean'?`<input type="checkbox" data-k="${k}" ${v?'checked':''}>`:typeof d==='number'?`<input type="number" data-k="${k}" value="${v}" style="width:90px">`:`<input type="text" data-k="${k}" value="${v}" style="width:90px">`;
+  const inp=typeof d==='boolean'?`<input type="checkbox" data-k="${k}" ${v?'checked':''}>`:typeof d==='number'?`<input type="number" data-k="${k}" value="${v}" style="width:90px">`:k==='tts_engine'?`<select data-k="${k}"><option ${v==='edge'?'selected':''}>edge</option><option ${v==='openai'?'selected':''}>openai</option></select>`:`<input type="text" data-k="${k}" value="${v}" style="width:${k.startsWith('tts_')?260:90}px">`;
   return `<tr><td><code>${k}</code></td><td class="muted">${CFG_DESC[k]||''}</td><td>${inp}</td><td class="muted">${d}</td></tr>`}).join('');
 }
 async function saveCfg(){
- const data={};document.querySelectorAll('#cfgTbl input').forEach(i=>{const d=cfgData.defaults[i.dataset.k];data[i.dataset.k]=typeof d==='boolean'?i.checked:typeof d==='number'?+i.value:i.value});
+ const data={};document.querySelectorAll('#cfgTbl input,#cfgTbl select').forEach(i=>{const d=cfgData.defaults[i.dataset.k];data[i.dataset.k]=typeof d==='boolean'?i.checked:typeof d==='number'?+i.value:i.value});
  await api(`/projects/${P}/config`,{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify(data)});
+ voices=[];
  $('#cfgMsg').textContent='已保存';setTimeout(()=>$('#cfgMsg').textContent='',1500);loadCfg();
 }
 async function resetCfg(){await api(`/projects/${P}/config`,{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify(cfgData.defaults)});loadCfg()}

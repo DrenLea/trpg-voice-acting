@@ -5,7 +5,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-import edge_tts
 from fastapi import FastAPI, HTTPException, UploadFile
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
@@ -130,6 +129,16 @@ def voices():
     return _json(ASSETS / "voices.json", [])
 
 
+@app.get("/api/projects/{p}/voices")
+def project_voices(p: str):
+    """当前项目引擎可用的声线；openai 引擎取 config.tts_voices。"""
+    cfg = config.load(_work(p))
+    if cfg["tts_engine"] == "edge":
+        return {"engine": "edge", "voices": voices()}
+    ids = [v.strip() for v in re.split(r"[,，\s]+", cfg["tts_voices"]) if v.strip()]
+    return {"engine": cfg["tts_engine"], "voices": [{"id": v, "gender": "", "persona": []} for v in ids]}
+
+
 @app.get("/api/projects/{p}/characters")
 def get_chars(p: str):
     data = _json(_work(p) / "characters.json")
@@ -145,12 +154,17 @@ def put_chars(p: str, data: dict):
 
 
 @app.get("/api/preview")
-async def preview(voice: str, text: str = "你好，这是试听。", rate: str = "0%", pitch: str = "0Hz"):
-    cfg = {"voice": voice, "rate": rate, "pitch": pitch}
+async def preview(voice: str, text: str = "你好，这是试听。", rate: str = "0%", pitch: str = "0Hz",
+                  style: str = "", p: str = ""):
+    eng = tts.engine_from(config.load(_work(p))) if p else {"engine": "edge"}
+    cfg = {"voice": voice, "rate": rate, "pitch": pitch, "style": style if eng["engine"] != "edge" else ""}
     tts.CACHE.mkdir(parents=True, exist_ok=True)
-    out = tts.CACHE / f"{tts.key(cfg, text)}.mp3"
+    out = tts.CACHE / f"{tts.key(cfg, text, eng)}.mp3"
     if not out.exists() or out.stat().st_size < 1024:
-        await edge_tts.Communicate(text, voice, rate=tts._signed(rate, "%"), pitch=tts._signed(pitch, "Hz")).save(str(out))
+        try:
+            await tts.speak(eng, cfg, text, out)
+        except Exception as e:  # noqa: BLE001
+            raise HTTPException(502, f"TTS 失败: {e}") from e
     return FileResponse(out, media_type="audio/mpeg")
 
 
@@ -182,6 +196,48 @@ def put_scene(p: str, n: int, body: SceneBody):
 def lines(p: str, which: str = "clean"):
     f = _work(p) / ("clean.txt" if which == "clean" else "lines.jsonl")
     return {"text": f.read_text(encoding="utf-8") if f.exists() else ""}
+
+
+@app.get("/api/projects/{p}/script-lines")
+def script_lines(p: str, scene: int = 0):
+    """某幕的台词行，附生效的声线参数与是否有行级覆盖。"""
+    from .scriptfmt import parse_script
+
+    d = _work(p)
+    sp, chars = d / "script.md", _json(d / "characters.json")
+    if not sp.exists() or not chars:
+        return []
+    vm, ov = tts.voice_map(chars), config.load_lines(d)
+    out, cur = [], 0
+    for e in parse_script(sp):
+        if e.kind == "scene":
+            cur = int(e.a)
+        elif e.kind == "line" and (not scene or cur == scene):
+            k = tts.line_key(e.a, e.b)
+            out.append({"k": k, "scene": cur, "role": e.a, "text": e.b, **tts.line_cfg(vm, e.a, e.b, ov),
+                        "ov": {kk: v for kk, v in ov.get(k, {}).items() if v}})
+    return out
+
+
+class LineBody(BaseModel):
+    k: str
+    voice: str = ""
+    rate: str = ""
+    pitch: str = ""
+    style: str = ""
+
+
+@app.put("/api/projects/{p}/script-lines")
+def put_line(p: str, b: LineBody):
+    d = _work(p)
+    ov = config.load_lines(d)
+    vals = {k: v.strip() for k in tts.FIELDS if (v := getattr(b, k)).strip()}
+    if vals:
+        ov[b.k] = vals
+    else:
+        ov.pop(b.k, None)
+    config.save_lines(d, ov)
+    return {"ok": True}
 
 
 # ---------- assets ----------
