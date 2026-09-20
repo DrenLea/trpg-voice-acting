@@ -12,8 +12,8 @@
 
 - **省 token**：解析、正则清洗、合并、缓存全用代码；LLM 只做判定与改写，按块/按幕处理，默认 `claude-haiku-4-5`（实测比 sonnet 更守剧本格式）。
 - **不改剧情**：提示词硬规则——不增删情节、不改人设、不添加原文没有的心理活动；三类格式校验 + 带错误反馈自动重试。
-- **免费声线库，引擎可换**：默认 edge-tts 14 个中文神经声线，可试听选择；设置页一键切到任何 OpenAI 兼容 `/v1/audio/speech` 本地服务（Kokoro-FastAPI、CosyVoice、Index-TTS 等），角色语气自动作为风格指令传入。不做真人声线克隆。
-- **台词级微调**：剧本页可对单句覆盖声线 / 语速 / 音调 / 风格，留空即用角色默认，只重合成改动的句子。
+- **免费声线库，引擎可换**：默认 edge-tts 14 个中文神经声线，可试听选择；填一个 Azure Speech 免费密钥（每月 50 万字）即可扩到 20+ 声线，含童声、情感风格与年龄（男孩 / 女孩 / 中年 / 老年）；也可一键切到任何 OpenAI 兼容 `/v1/audio/speech` 本地服务（Kokoro-FastAPI、CosyVoice、Qwen3-TTS 等），角色语气自动作为风格指令传入。不做真人声线克隆。
+- **台词级微调**：剧本页可对单句覆盖声线 / 语速 / 音调 / 风格 / 年龄，留空即用角色默认，只重合成改动的句子。
 - **免费素材库**：Openverse API（Freesound 音效 + Jamendo 音乐，CC 授权，无需密钥）按剧本描述自动检索下载，自动记录署名。
 - **可监修**：剧本是 Markdown（`【角色】台词` / `[音效]` / `「BGM: …」`），改一幕只重跑一幕；TTS 按行缓存，只重合成改动的台词。
 - **Web 工作台**：导入、运行、选声线试听、改剧本、找素材、逐段替换/静音/调音量 BGM 与音效、混音参数设置、试听成片，一页搞定。
@@ -26,7 +26,7 @@
 git clone https://github.com/DrenLea/trpg-voice-acting.git
 cd trpg-voice-acting
 uv venv && uv pip install -e .
-cp .env.example .env   # 填入 ANTHROPIC_API_KEY
+cp .env.example .env   # 填入 ANTHROPIC_API_KEY；可选 AZURE_SPEECH_KEY / AZURE_SPEECH_REGION 解锁更多声线
 ```
 
 ### 使用
@@ -78,8 +78,8 @@ Turn text-based TRPG session logs into a multi-voice audio drama: **clean → sp
 
 - **Token-frugal**: parsing, regex cleaning, merging and caching are plain code; the LLM only judges and rewrites, chunk-by-chunk / scene-by-scene, defaulting to `claude-haiku-4-5` (empirically more format-compliant than sonnet for this task).
 - **Plot-faithful**: hard prompt rules — no added or removed plot, no personality drift, no invented inner monologue; three format validators with error-fed automatic retry.
-- **Free voices, swappable engine**: 14 Chinese neural voices from edge-tts by default, previewable in the UI; switch in Settings to any OpenAI-compatible `/v1/audio/speech` local server (Kokoro-FastAPI, CosyVoice, Index-TTS…) — each character's tone is passed as the style instruction. No voice cloning.
-- **Per-line tuning**: override voice / rate / pitch / style for a single line from the script page; blank fields fall back to the character; only changed lines are re-synthesized.
+- **Free voices, swappable engine**: 14 Chinese neural voices from edge-tts by default, previewable in the UI; add a free Azure Speech key (500k chars/month) to unlock 20+ voices with child voices, emotional styles and age roles (boy / girl / older / senior); or switch to any OpenAI-compatible `/v1/audio/speech` local server (Kokoro-FastAPI, CosyVoice, Qwen3-TTS…) — each character's tone is passed as the style instruction. No voice cloning.
+- **Per-line tuning**: override voice / rate / pitch / style / age for a single line from the script page; blank fields fall back to the character; only changed lines are re-synthesized.
 - **Free asset library**: Openverse API (Freesound SFX + Jamendo music, CC-licensed, no API key) searched automatically from script cues, with attribution recorded.
 - **Reviewable**: the script is Markdown (`【Role】line` / `[sfx]` / `「BGM: …」`); edit one scene, rerun one scene; TTS is cached per line.
 - **Web workbench**: import, run steps, pick & preview voices, edit scenes, find assets, replace / mute / re-level every BGM and SFX cue, tune mix parameters, listen to the result — one page.
@@ -92,7 +92,7 @@ Python ≥ 3.11 (3.13 recommended) and [uv](https://github.com/astral-sh/uv). No
 git clone https://github.com/DrenLea/trpg-voice-acting.git
 cd trpg-voice-acting
 uv venv && uv pip install -e .
-cp .env.example .env   # set ANTHROPIC_API_KEY
+cp .env.example .env   # set ANTHROPIC_API_KEY; optional AZURE_SPEECH_KEY / AZURE_SPEECH_REGION for more voices
 ```
 
 ### Usage

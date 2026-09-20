@@ -30,8 +30,9 @@ def main() -> None:
     a = sub.add_parser("audio", help="script.md → TTS + 混音 → out/*.mp3")
     a.add_argument("-w", "--work", type=Path, required=True)
 
-    v = sub.add_parser("voices", help="拉取 edge-tts 中文声线 → assets/voices.json")
+    v = sub.add_parser("voices", help="拉取 edge-tts 中文声线 → assets/voices.json（--azure 拉 Azure 全量 → voices_azure.json）")
     v.add_argument("-o", "--out", type=Path, default=Path("assets/voices.json"))
+    v.add_argument("--azure", action="store_true")
 
     al = sub.add_parser("all", help="parse → clean --llm → chars → script → audio")
     al.add_argument("log", type=Path)
@@ -75,9 +76,17 @@ def main() -> None:
         return
 
     if args.cmd == "voices":
-        vs = voices.refresh(args.out)
+        if args.azure:
+            from .tts import engine_from
+
+            e = engine_from({"tts_engine": "azure"})
+            vs = voices.refresh_azure(args.out if args.out != Path("assets/voices.json") else Path("assets/voices_azure.json"),
+                                      e["region"], e["key"])
+        else:
+            vs = voices.refresh(args.out)
         for x in vs:
-            print(f"{x['id']:34} {x['gender']:6} {'/'.join(x['persona'])}")
+            extra = f" styles={len(x['styles'])} roles={len(x['roles'])}" if "styles" in x else ""
+            print(f"{x['id']:34} {x['gender']:6} {'/'.join(x['persona'])}{extra}")
         return
 
     args.work.mkdir(parents=True, exist_ok=True)

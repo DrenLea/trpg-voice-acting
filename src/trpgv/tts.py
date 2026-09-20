@@ -13,16 +13,21 @@ CACHE = Path("cache/wav")
 FALLBACK = ["zh-CN-YunjianNeural", "zh-CN-XiaoxiaoNeural", "zh-CN-YunxiaNeural", "zh-CN-XiaoyiNeural", "zh-CN-YunxiNeural"]
 QUOTES = re.compile(r"[“”\"‘’「」『』]")
 SPEAKABLE = re.compile(r"[一-鿿A-Za-z0-9]")
-FIELDS = ("voice", "rate", "pitch", "style")
+FIELDS = ("voice", "rate", "pitch", "style", "role")
+ROLES = ("Girl", "Boy", "YoungAdultFemale", "YoungAdultMale", "OlderAdultFemale", "OlderAdultMale",
+         "SeniorFemale", "SeniorMale")
+AZURE_FMT = "audio-24khz-48kbitrate-mono-mp3"
 
 
 def engine_from(cfg: dict) -> dict:
-    """从项目 config 取 TTS 引擎参数；密钥只走环境变量 TTS_API_KEY。"""
+    """从项目 config 取 TTS 引擎参数；密钥只走环境变量（TTS_API_KEY / AZURE_SPEECH_KEY）。"""
     from .llm import _load_env
 
     _load_env()
-    return {"engine": cfg.get("tts_engine", "edge"), "base_url": cfg.get("tts_base_url", "").rstrip("/"),
-            "model": cfg.get("tts_model", ""), "key": os.environ.get("TTS_API_KEY", "")}
+    e = cfg.get("tts_engine", "edge")
+    return {"engine": e, "base_url": cfg.get("tts_base_url", "").rstrip("/"), "model": cfg.get("tts_model", ""),
+            "key": os.environ.get("AZURE_SPEECH_KEY" if e == "azure" else "TTS_API_KEY", ""),
+            "region": os.environ.get("AZURE_SPEECH_REGION", "")}
 
 
 def voice_map(chars: dict) -> dict[str, dict]:
@@ -49,7 +54,7 @@ def key(cfg: dict, text: str, eng: dict | None = None) -> str:
     e = eng or {}
     parts = [cfg["voice"], cfg.get("rate") or "0%", cfg.get("pitch") or "0Hz", text]
     if e.get("engine", "edge") != "edge":  # edge 保持旧键格式，已有缓存不失效
-        parts = [e["engine"], e.get("model", ""), cfg.get("style") or "", *parts]
+        parts = [e["engine"], e.get("model", ""), cfg.get("style") or "", cfg.get("role") or "", *parts]
     return hashlib.sha1("|".join(parts).encode()).hexdigest()
 
 
@@ -63,13 +68,45 @@ def _speed(rate: str | None) -> float:
     return round(1 + float(m[0]) / 100, 3) if m else 1.0
 
 
+def _post(url: str, data: bytes, hdr: dict, out: Path) -> None:
+    import urllib.request
+
+    req = urllib.request.Request(url, data, hdr)
+    with urllib.request.urlopen(req, timeout=120) as r:
+        out.write_bytes(r.read())
+
+
+def azure_ssml(cfg: dict, text: str) -> str:
+    from xml.sax.saxutils import escape
+
+    body = f"<prosody rate='{_signed(cfg.get('rate'), '%')}' pitch='{_signed(cfg.get('pitch'), 'Hz')}'>{escape(text)}</prosody>"
+    attrs = "".join(f" {k}='{cfg[k]}'" for k in ("style", "role") if cfg.get(k))
+    if attrs:
+        body = f"<mstts:express-as{attrs}>{body}</mstts:express-as>"
+    return ("<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' "
+            "xmlns:mstts='https://www.w3.org/2001/mstts' xml:lang='zh-CN'>"
+            f"<voice name='{cfg['voice']}'>{body}</voice></speak>")
+
+
+def azure_base(region: str) -> str:
+    """region 可填完整地址（如 Azure 中国 https://xx.tts.speech.azure.cn）。"""
+    return region.rstrip("/") if "://" in region else f"https://{region}.tts.speech.microsoft.com"
+
+
 async def speak(eng: dict, cfg: dict, text: str, out: Path) -> None:
-    if eng.get("engine", "edge") == "edge":
+    e = eng.get("engine", "edge")
+    if e == "edge":
         await edge_tts.Communicate(text, cfg["voice"], rate=_signed(cfg.get("rate"), "%"),
                                    pitch=_signed(cfg.get("pitch"), "Hz")).save(str(out))
         return
-    import urllib.request
-
+    if e == "azure":
+        if not (eng.get("key") and eng.get("region")):
+            raise RuntimeError("tts_engine=azure 需要在 .env 填 AZURE_SPEECH_KEY 和 AZURE_SPEECH_REGION（如 eastasia）")
+        hdr = {"Ocp-Apim-Subscription-Key": eng["key"], "Content-Type": "application/ssml+xml",
+               "X-Microsoft-OutputFormat": AZURE_FMT, "User-Agent": "trpgv"}
+        await asyncio.to_thread(_post, f"{azure_base(eng['region'])}/cognitiveservices/v1",
+                                azure_ssml(cfg, text).encode(), hdr, out)
+        return
     if not eng.get("base_url"):
         raise RuntimeError("tts_engine=openai 需要在设置里填 tts_base_url（如 http://127.0.0.1:8880/v1）")
     body = {"model": eng.get("model") or "tts-1", "input": text, "voice": cfg["voice"],
@@ -79,13 +116,7 @@ async def speak(eng: dict, cfg: dict, text: str, out: Path) -> None:
     hdr = {"Content-Type": "application/json"}
     if eng.get("key"):
         hdr["Authorization"] = f"Bearer {eng['key']}"
-    req = urllib.request.Request(f"{eng['base_url']}/audio/speech", json.dumps(body).encode(), hdr)
-
-    def _post() -> None:
-        with urllib.request.urlopen(req, timeout=120) as r:
-            out.write_bytes(r.read())
-
-    await asyncio.to_thread(_post)
+    await asyncio.to_thread(_post, f"{eng['base_url']}/audio/speech", json.dumps(body).encode(), hdr, out)
 
 
 async def _one(sem: asyncio.Semaphore, eng: dict, cfg: dict, text: str, out: Path) -> None:
@@ -99,14 +130,17 @@ async def _one(sem: asyncio.Semaphore, eng: dict, cfg: dict, text: str, out: Pat
         raise RuntimeError(f"tts failed for {cfg['voice']}: {text[:60]!r}") from err
 
 
-def line_cfg(vm: dict, role: str, text: str, overrides: dict) -> dict:
-    """角色声线 + 行级覆盖（只覆盖非空字段）。"""
+def line_cfg(vm: dict, role: str, text: str, overrides: dict, engine: str = "edge") -> dict:
+    """角色声线 + 行级覆盖（只覆盖非空字段），并去掉当前引擎不支持的字段。"""
     base = vm.get(role) or vm["旁白"]
     cfg = {k: base.get(k) or "" for k in FIELDS}
-    cfg["style"] = cfg["style"] or base.get("tone") or ""
     for k, v in overrides.get(line_key(role, text), {}).items():
         if k in FIELDS and v:
             cfg[k] = v
+    if engine == "openai":  # style 是自由文本指令，空则用语气
+        cfg["style"], cfg["role"] = cfg["style"] or base.get("tone") or "", ""
+    elif engine != "azure":  # edge 无风格/年龄，不入缓存键
+        cfg["style"] = cfg["role"] = ""
     return cfg
 
 
@@ -125,9 +159,7 @@ def synth(script: Path, chars: dict, concurrency: int = 8, eng: dict | None = No
             continue
         if e.a not in vm:
             print(f"  未知角色 {e.a}，用旁白声线")
-        cfg = line_cfg(vm, e.a, e.b, overrides)
-        if eng["engine"] == "edge":
-            cfg["style"] = ""  # edge-tts 无风格指令，不入缓存键
+        cfg = line_cfg(vm, e.a, e.b, overrides, eng["engine"])
         text = QUOTES.sub("", e.b).replace("\n", "，")
         if not SPEAKABLE.search(text):
             continue

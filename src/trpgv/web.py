@@ -130,13 +130,27 @@ def voices():
 
 
 @app.get("/api/projects/{p}/voices")
-def project_voices(p: str):
-    """当前项目引擎可用的声线；openai 引擎取 config.tts_voices。"""
+def project_voices(p: str, refresh: bool = False):
+    """当前项目引擎可用的声线；azure 首次在线拉取后缓存；openai 引擎取 config.tts_voices。"""
     cfg = config.load(_work(p))
-    if cfg["tts_engine"] == "edge":
+    e = cfg["tts_engine"]
+    if e == "edge":
         return {"engine": "edge", "voices": voices()}
+    if e == "azure":
+        from . import voices as vmod
+
+        f = ASSETS / "voices_azure.json"
+        if refresh or not f.exists():
+            eng = tts.engine_from(cfg)
+            if not (eng["key"] and eng["region"]):
+                raise HTTPException(400, "请在 .env 填 AZURE_SPEECH_KEY 和 AZURE_SPEECH_REGION")
+            try:
+                vmod.refresh_azure(f, eng["region"], eng["key"])
+            except Exception as ex:  # noqa: BLE001
+                raise HTTPException(502, f"拉取 Azure 声线失败: {ex}") from ex
+        return {"engine": "azure", "voices": _json(f, []), "roles": list(tts.ROLES)}
     ids = [v.strip() for v in re.split(r"[,，\s]+", cfg["tts_voices"]) if v.strip()]
-    return {"engine": cfg["tts_engine"], "voices": [{"id": v, "gender": "", "persona": []} for v in ids]}
+    return {"engine": e, "voices": [{"id": v, "gender": "", "persona": []} for v in ids]}
 
 
 @app.get("/api/projects/{p}/characters")
@@ -155,9 +169,11 @@ def put_chars(p: str, data: dict):
 
 @app.get("/api/preview")
 async def preview(voice: str, text: str = "你好，这是试听。", rate: str = "0%", pitch: str = "0Hz",
-                  style: str = "", p: str = ""):
+                  style: str = "", role: str = "", p: str = ""):
     eng = tts.engine_from(config.load(_work(p))) if p else {"engine": "edge"}
-    cfg = {"voice": voice, "rate": rate, "pitch": pitch, "style": style if eng["engine"] != "edge" else ""}
+    e = eng["engine"]
+    cfg = {"voice": voice, "rate": rate, "pitch": pitch,
+           "style": style if e != "edge" else "", "role": role if e == "azure" else ""}
     tts.CACHE.mkdir(parents=True, exist_ok=True)
     out = tts.CACHE / f"{tts.key(cfg, text, eng)}.mp3"
     if not out.exists() or out.stat().st_size < 1024:
@@ -208,13 +224,14 @@ def script_lines(p: str, scene: int = 0):
     if not sp.exists() or not chars:
         return []
     vm, ov = tts.voice_map(chars), config.load_lines(d)
+    engine = config.load(d)["tts_engine"]
     out, cur = [], 0
     for e in parse_script(sp):
         if e.kind == "scene":
             cur = int(e.a)
         elif e.kind == "line" and (not scene or cur == scene):
             k = tts.line_key(e.a, e.b)
-            out.append({"k": k, "scene": cur, "role": e.a, "text": e.b, **tts.line_cfg(vm, e.a, e.b, ov),
+            out.append({"k": k, "scene": cur, "who": e.a, "text": e.b, **tts.line_cfg(vm, e.a, e.b, ov, engine),
                         "ov": {kk: v for kk, v in ov.get(k, {}).items() if v}})
     return out
 
@@ -225,6 +242,7 @@ class LineBody(BaseModel):
     rate: str = ""
     pitch: str = ""
     style: str = ""
+    role: str = ""
 
 
 @app.put("/api/projects/{p}/script-lines")

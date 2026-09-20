@@ -22,6 +22,8 @@ assets/sfx/*
 assets/bgm/*
 !assets/sfx/.gitkeep
 !assets/bgm/.gitkeep
+# Azure 声线清单按账号在线拉取（工作台自动 / trpgv voices --azure）
+assets/voices_azure.json
 
 # python
 __pycache__/

@@ -10,7 +10,7 @@ DEFAULTS = {
     "fade_ms": 2000,        # BGM 淡入淡出
     "bitrate": "128k",
     "tts_concurrency": 8,
-    "tts_engine": "edge",   # edge | openai（任何 OpenAI 兼容 /v1/audio/speech 服务：Kokoro-FastAPI、CosyVoice、Index-TTS 等）
+    "tts_engine": "edge",   # edge | azure（Azure Speech，密钥走 AZURE_SPEECH_KEY/REGION）| openai（任何 OpenAI 兼容 /v1/audio/speech 服务）
     "tts_base_url": "",     # openai 引擎地址，如 http://127.0.0.1:8880/v1；密钥走环境变量 TTS_API_KEY
     "tts_model": "",        # openai 引擎 model 字段，空则 tts-1
     "tts_voices": "",       # openai 引擎可选声线，逗号分隔
@@ -43,7 +43,7 @@ def save_cues(work: Path, cues: dict) -> None:
 
 
 def load_lines(work: Path) -> dict:
-    """{ line_key: {"voice"|"rate"|"pitch"|"style": str} }，行级覆盖角色声线。"""
+    """{ line_key: {"voice"|"rate"|"pitch"|"style"|"role": str} }，行级覆盖角色声线。"""
     p = work / "lines.json"
     return json.loads(p.read_text(encoding="utf-8")) if p.exists() else {}
 
