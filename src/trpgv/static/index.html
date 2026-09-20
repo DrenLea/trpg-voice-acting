@@ -39,6 +39,7 @@ pre#log{background:#1e1b3a;color:#cfd2ff;padding:12px 14px;border-radius:12px;ma
 .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:8px 0}
 .muted{color:var(--muted)}.ok{color:var(--ok)}.bad{color:var(--bad)}
 .tag{display:inline-block;padding:1px 9px;border-radius:999px;background:#eeedff;color:var(--acc);font-size:12px;font-weight:600;margin:1px}
+.tag:empty{display:none}
 .tag.bad{background:#ffe9e8;color:var(--bad)}
 .tag.ok2{background:#e0f8f2;color:var(--ok)}
 .tag.mute{background:#f0f0f4;color:var(--muted)}
@@ -51,6 +52,16 @@ code{background:#eeedff;color:var(--acc);padding:1px 6px;border-radius:6px;font-
 details summary{cursor:pointer}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
 @media(max-width:800px){.grid2{grid-template-columns:1fr}main{padding:12px}}
+.plist{display:grid;gap:8px;margin-bottom:14px}
+.pitem{display:flex;gap:12px;align-items:center;padding:10px 14px;border:1px solid var(--line);border-radius:12px;background:#fbfbff;cursor:pointer;transition:.15s}
+.pitem:hover{border-color:var(--acc2);box-shadow:var(--sh)}
+.pitem.cur{border-color:var(--acc);background:#f3f1ff}
+.pitem b{min-width:120px}
+.pitem .st{display:flex;gap:3px}
+.pitem .meta{color:var(--muted);font-size:12px;margin-left:auto;white-space:nowrap}
+.pitem .del{padding:2px 8px;font-size:12px;border-radius:8px}
+.spin{display:inline-block;width:10px;height:10px;border:2px solid var(--acc2);border-top-color:var(--acc);border-radius:50%;animation:sp .8s linear infinite;vertical-align:-1px}
+@keyframes sp{to{transform:rotate(360deg)}}
 </style></head><body>
 <header><b>🎧 trpgv 广播剧工作台</b>
  项目 <select id="proj"></select>
@@ -59,16 +70,33 @@ details summary{cursor:pointer}
 </header>
 <main>
 <nav>
- <button data-t="imp" class="on">① 导入</button><button data-t="chars">② 角色与声线</button>
+ <button data-t="home" class="on">⌂ 任务</button><button data-t="imp">① 导入</button><button data-t="chars">② 角色与声线</button>
  <button data-t="script">③ 剧本</button><button data-t="assets">④ 素材库</button><button data-t="cues">⑤ 音轨</button>
  <button data-t="audio">⑥ 生成音频</button><button data-t="cfg">⚙ 设置</button>
 </nav>
 
-<section id="imp" class="on">
- <div class="row"><input type="text" id="newName" placeholder="项目名，如 金枝" style="width:160px">
-  <input type="file" id="newFile" accept=".txt,.docx">
-  <button class="p" onclick="createProj()">导入并解析</button>
-  <span class="muted">支持 .txt / .docx；格式 <code>&lt;[昵称]角色&gt;:内容</code></span></div>
+<section id="home" class="on">
+ <div class="grid2">
+  <div>
+   <h3>新建任务</h3>
+   <div class="row"><input type="text" id="newName" placeholder="项目名，如 金枝" style="width:180px">
+    <input type="file" id="newFile" accept=".txt,.docx"></div>
+   <div class="row"><button class="p" onclick="createProj(true)">新建并一键全流程</button><button onclick="createProj(false)">仅导入</button>
+    <span class="muted">支持 .txt / .docx；格式 <code>&lt;[昵称]角色&gt;:内容</code></span></div>
+  </div>
+  <div>
+   <h3>运行中 <span id="cntRun" class="tag"></span></h3>
+   <div id="listRun" class="plist"><span class="muted">无</span></div>
+  </div>
+ </div>
+ <h3>进行中 <span id="cntWip" class="tag"></span></h3>
+ <div id="listWip" class="plist"><span class="muted">无</span></div>
+ <h3>已完成 <span id="cntDone" class="tag ok2"></span></h3>
+ <div id="listDone" class="plist"><span class="muted">无</span></div>
+</section>
+
+<section id="imp">
+ <div class="row"><span class="muted">当前项目：</span><b id="impName"></b><span id="impSrc" class="muted"></span></div>
  <div class="row"><button onclick="runStep('parse')">1 解析</button><button onclick="runStep('clean')">2 清洗 (规则+LLM)</button>
   <button onclick="runStep('chars')">3 角色表</button><button class="p" onclick="runStep('all')">一键全流程</button>
   <button onclick="loadLines()">查看清洗结果</button></div>
@@ -144,34 +172,68 @@ let P='', voices=[], chars=null, scenesData=[], timer=null;
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
  document.querySelectorAll('nav button,section').forEach(x=>x.classList.remove('on'));
  b.classList.add('on');$('#'+b.dataset.t).classList.add('on');refreshTab(b.dataset.t)});
-$('#proj').onchange=e=>{P=e.target.value;localStorage.p=P;refreshAll()};
+$('#proj').onchange=e=>selectProj(e.target.value);
+
+let projList=[];
+const STEPS=['lines','clean','chars','script','audio'], STEP_ZH={lines:'解析',clean:'清洗',chars:'角色',script:'剧本',audio:'音频'};
+const STATE_ZH={running:'运行中',done:'已完成',wip:'进行中',new:'未开始',failed:'失败'};
+function stepsHtml(p){return STEPS.map(k=>`<span class="step ${p.has[k]?'done':''}" title="${STEP_ZH[k]}"></span>`).join('')}
+function fmtTime(t){const d=new Date(t*1000);return d.toLocaleDateString('zh',{month:'numeric',day:'numeric'})+' '+d.toLocaleTimeString('zh',{hour:'2-digit',minute:'2-digit'})}
 
 async function loadProjects(){
- const ps=await api('/projects');const sel=$('#proj');sel.innerHTML='';
- ps.forEach(p=>sel.add(new Option(p.name,p.name)));
- if(!P||!ps.find(x=>x.name===P))P=localStorage.p&&ps.find(x=>x.name===localStorage.p)?localStorage.p:(ps[0]?.name||'');
+ projList=await api('/projects');const sel=$('#proj');sel.innerHTML='';
+ const groups=[['运行中',p=>p.state==='running'],['进行中',p=>['wip','new','failed'].includes(p.state)],['已完成',p=>p.state==='done']];
+ for(const [label,f] of groups){const ps=projList.filter(f);if(!ps.length)continue;
+  const og=document.createElement('optgroup');og.label=label;ps.forEach(p=>og.appendChild(new Option(p.name+(p.state==='running'?' ⏳':''),p.name)));sel.appendChild(og)}
+ if(!P||!projList.find(x=>x.name===P))P=localStorage.p&&projList.find(x=>x.name===localStorage.p)?localStorage.p:(projList[0]?.name||'');
  sel.value=P;
- const cur=ps.find(x=>x.name===P);
- $('#steps').innerHTML=cur?['lines','clean','chars','script','audio'].map(k=>`<span class="step ${cur.has[k]?'done':''}" title="${k}"></span>`).join(''):'';
+ const cur=projList.find(x=>x.name===P);
+ $('#steps').innerHTML=cur?stepsHtml(cur):'';
+ $('#impName').textContent=P;$('#impSrc').textContent=cur?.source?`（${cur.source}）`:'';
+ renderHome();
+ const anyRun=projList.some(p=>p.state==='running');
+ clearInterval(bgTimer);if(anyRun)bgTimer=setInterval(loadProjects,3000);
+}
+let bgTimer=null;
+function renderHome(){
+ const item=p=>`<div class="pitem ${p.name===P?'cur':''}" onclick="selectProj('${p.name}')">
+  ${p.state==='running'?'<span class="spin"></span>':''}<b>${p.name}</b><span class="st">${stepsHtml(p)}</span>
+  ${p.state==='running'?`<span class="tag">${p.step}</span>`:p.state==='failed'?`<span class="tag bad">失败</span>`:''}
+  <span class="meta">${fmtTime(p.mtime)}</span>
+  ${p.state!=='running'?`<button class="del" onclick="event.stopPropagation();delProj('${p.name}')">删除</button>`:''}</div>`;
+ const fill=(id,cnt,ps)=>{$(id).innerHTML=ps.map(item).join('')||'<span class="muted">无</span>';$(cnt).textContent=ps.length||''};
+ fill('#listRun','#cntRun',projList.filter(p=>p.state==='running'));
+ fill('#listWip','#cntWip',projList.filter(p=>['wip','new','failed'].includes(p.state)));
+ fill('#listDone','#cntDone',projList.filter(p=>p.state==='done'));
+}
+function selectProj(n){P=n;localStorage.p=n;$('#proj').value=n;refreshAll();
+ const p=projList.find(x=>x.name===n);if(p?.state==='running'){$('#run').textContent='运行中: '+p.step;poll()}}
+async function delProj(n){
+ if(!confirm(`删除项目「${n}」及其全部产物？`))return;
+ try{await api(`/projects/${n}`,{method:'DELETE'})}catch(e){return alert(e.message)}
+ if(P===n)P='';loadProjects();
 }
 async function refreshAll(){await loadProjects();refreshTab(document.querySelector('nav button.on').dataset.t)}
 function refreshTab(t){if(!P)return;({chars:loadChars,script:loadScenes,assets:loadAssets,audio:loadOuts,cues:loadCues,cfg:loadCfg})[t]?.()}
 
-async function createProj(){
+async function createProj(full){
  const name=$('#newName').value.trim(),f=$('#newFile').files[0];
  if(!name||!f)return alert('请填项目名并选择文件');
+ if(projList.find(x=>x.name===name)&&!confirm(`项目「${name}」已存在，覆盖其原始文件？`))return;
  const fd=new FormData();fd.append('file',f);
  await api('/projects?name='+encodeURIComponent(name),{method:'POST',body:fd});
- P=name;await loadProjects();runStep('parse');
+ P=name;localStorage.p=name;$('#newName').value='';$('#newFile').value='';
+ await loadProjects();runStep(full?'all':'parse');
 }
 async function runStep(step,q=''){
- if(!P)return alert('先导入项目');
+ if(!P)return alert('先新建或选择项目');
  try{await api(`/projects/${P}/run/${step}${q}`,{method:'POST'})}catch(e){return alert(e.message)}
- $('#run').textContent='运行中: '+step;poll();
+ $('#run').textContent='运行中: '+step;poll();loadProjects();
 }
 function poll(){clearInterval(timer);timer=setInterval(async()=>{
  const s=await api(`/projects/${P}/status`);$('#log').textContent=s.log;$('#log').scrollTop=1e9;
- if(!s.running){clearInterval(timer);$('#run').textContent='';refreshAll()}},1500)}
+ if(s.running)$('#run').innerHTML=`<span class="spin"></span> 运行中: ${s.step}`;
+ else{clearInterval(timer);$('#run').textContent='';refreshAll()}},1500)}
 async function loadLines(){const r=await api(`/projects/${P}/lines`);const t=$('#linesView');t.hidden=false;t.value=r.text}
 
 // ---- chars ----

@@ -40,12 +40,23 @@ def index():
 @app.get("/api/projects")
 def projects():
     out = []
-    for d in sorted(WORK.glob("*")) if WORK.exists() else []:
-        if d.is_dir():
-            out.append({"name": d.name, "has": {k: (d / f).exists() for k, f in
-                        [("lines", "lines.jsonl"), ("clean", "clean.jsonl"), ("chars", "characters.json"),
-                         ("script", "script.md"), ("audio", "out/full.mp3")]}})
+    for d in sorted(WORK.glob("*"), key=lambda x: x.stat().st_mtime, reverse=True) if WORK.exists() else []:
+        if not d.is_dir():
+            continue
+        pr = procs.get(d.name)
+        running = pr is not None and pr.poll() is None
+        has = {k: (d / f).exists() for k, f in
+               [("lines", "lines.jsonl"), ("clean", "clean.jsonl"), ("chars", "characters.json"),
+                ("script", "script.md"), ("audio", "out/full.mp3")]}
+        state = "running" if running else "done" if all(has.values()) else "wip" if any(has.values()) else "new"
+        if pr is not None and not running and pr.returncode:
+            state = "failed"
+        out.append({"name": d.name, "has": has, "state": state, "step": steps_of.get(d.name, ""),
+                    "mtime": int(d.stat().st_mtime), "source": next((s.name for s in d.glob("source.*")), "")})
     return out
+
+
+steps_of: dict[str, str] = {}
 
 
 @app.post("/api/projects")
@@ -69,7 +80,20 @@ def status(p: str):
     tail = log.read_text(encoding="utf-8", errors="replace")[-4000:] if log.exists() else ""
     if pr is not None and not running:
         tail += f"\n[exit {pr.returncode}]"
-    return {"running": running, "log": tail}
+    return {"running": running, "step": steps_of.get(p, ""), "log": tail}
+
+
+@app.delete("/api/projects/{p}")
+def delete_project(p: str):
+    import shutil
+
+    d = _work(p)
+    if (pr := procs.get(p)) and pr.poll() is None:
+        raise HTTPException(409, "任务运行中，不能删除")
+    shutil.rmtree(d)
+    procs.pop(p, None)
+    steps_of.pop(p, None)
+    return {"ok": True}
 
 
 @app.post("/api/projects/{p}/run/{step}")
@@ -94,6 +118,7 @@ def run(p: str, step: str, scene: int | None = None, smart: bool = False):
         if smart or (not scene and config.load(d)["script_smart"]):
             args.append("--smart")
     log = (d / "log.txt").open("w", encoding="utf-8")
+    steps_of[p] = step
     procs[p] = subprocess.Popen(args, stdout=log, stderr=subprocess.STDOUT, cwd=os.getcwd(),
                                 env={**os.environ, "PYTHONIOENCODING": "utf-8", "PYTHONUNBUFFERED": "1"})
     return {"ok": True}
