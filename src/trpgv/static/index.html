@@ -1,37 +1,58 @@
 <!doctype html>
 <html lang="zh"><head><meta charset="utf-8"><title>trpgv 广播剧工作台</title>
 <style>
-:root{--bg:#f6f5f2;--card:#fff;--line:#e2e0da;--fg:#222;--muted:#777;--acc:#7a4b2a;--ok:#2f7d4a;--bad:#b33}
-body{margin:0;font:14px/1.5 system-ui,"Microsoft YaHei",sans-serif;color:var(--fg);background:var(--bg)}
-header{display:flex;gap:16px;align-items:center;padding:10px 20px;background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:2}
-header b{color:var(--acc);font-size:16px}
-main{max-width:1200px;margin:0 auto;padding:16px 20px}
-nav{display:flex;gap:4px;margin:10px 0}
-nav button{padding:6px 14px;border:1px solid var(--line);background:var(--card);border-radius:6px 6px 0 0;cursor:pointer}
-nav button.on{background:var(--acc);color:#fff;border-color:var(--acc)}
-section{display:none;background:var(--card);border:1px solid var(--line);border-radius:0 8px 8px 8px;padding:16px}
-section.on{display:block}
-button,select,input,textarea{font:inherit}
-button{cursor:pointer;border:1px solid var(--line);background:#fafaf8;border-radius:6px;padding:5px 12px}
-button.p{background:var(--acc);color:#fff;border-color:var(--acc)}
-button:disabled{opacity:.5;cursor:default}
-table{width:100%;border-collapse:collapse}
-th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
-th{color:var(--muted);font-weight:500}
-input[type=text],select{padding:4px 6px;border:1px solid var(--line);border-radius:4px}
-textarea{width:100%;box-sizing:border-box;min-height:320px;padding:8px;border:1px solid var(--line);border-radius:6px;font-family:Consolas,monospace;font-size:13px}
-pre#log{background:#1e1e1e;color:#ddd;padding:10px;border-radius:6px;max-height:220px;overflow:auto;font-size:12px;white-space:pre-wrap;margin:0}
+:root{
+ --bg:#f3f4ff;--card:#fff;--line:#e6e8f5;--fg:#1f2140;--muted:#7c80a3;
+ --acc:#6c5ce7;--acc2:#a29bfe;--pink:#fd79a8;--cyan:#00cec9;--yellow:#ffeaa7;
+ --ok:#00b894;--bad:#ff7675;--grad:linear-gradient(135deg,#6c5ce7,#fd79a8);
+ --sh:0 8px 24px rgba(108,92,231,.10);--r:14px
+}
+*{box-sizing:border-box}
+body{margin:0;font:14px/1.6 "Segoe UI",system-ui,"PingFang SC","Microsoft YaHei",sans-serif;color:var(--fg);
+ background:var(--bg);background-image:radial-gradient(900px 400px at -10% -10%,#e9e5ff 0,transparent 60%),radial-gradient(700px 400px at 110% 0,#ffe6f1 0,transparent 60%);background-attachment:fixed}
+header{display:flex;gap:16px;align-items:center;padding:12px 24px;background:rgba(255,255,255,.75);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:2}
+header b{font-size:18px;font-weight:800;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;letter-spacing:.2px}
+main{max-width:1200px;margin:0 auto;padding:18px 24px 40px}
+nav{display:flex;gap:6px;margin:6px 0 14px;flex-wrap:wrap}
+nav button{padding:8px 16px;border:0;background:#fff;color:var(--muted);border-radius:999px;cursor:pointer;font-weight:600;box-shadow:0 1px 2px rgba(31,33,64,.05);transition:.15s}
+nav button:hover{color:var(--acc);transform:translateY(-1px)}
+nav button.on{background:var(--grad);color:#fff;box-shadow:0 6px 16px rgba(108,92,231,.3)}
+section{display:none;background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:20px;box-shadow:var(--sh)}
+section.on{display:block;animation:fade .2s ease}
+@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+button,select,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer;border:1px solid var(--line);background:#fff;border-radius:10px;padding:6px 14px;font-weight:600;transition:.15s;white-space:nowrap}
+button:hover{border-color:var(--acc2);color:var(--acc)}
+button.p{background:var(--grad);color:#fff;border:0;box-shadow:0 4px 12px rgba(108,92,231,.25)}
+button.p:hover{filter:brightness(1.06);color:#fff;transform:translateY(-1px)}
+button:disabled{opacity:.5;cursor:default;transform:none}
+table{width:100%;border-collapse:separate;border-spacing:0}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{color:var(--muted);font-weight:600;font-size:12px;letter-spacing:.4px;text-transform:uppercase;background:#f8f8ff}
+tbody tr:hover td{background:#faf9ff}
+input[type=text],input[type=number],select{padding:6px 10px;border:1px solid var(--line);border-radius:10px;background:#fbfbff;transition:.15s}
+input:focus,select:focus,textarea:focus{outline:0;border-color:var(--acc2);box-shadow:0 0 0 3px rgba(108,92,231,.12)}
+input[type=file]{padding:4px}
+input[type=checkbox]{accent-color:var(--acc)}
+textarea{width:100%;min-height:320px;padding:12px;border:1px solid var(--line);border-radius:12px;font-family:"Cascadia Code",Consolas,monospace;font-size:13px;background:#fbfbff;line-height:1.7}
+pre#log{background:#1e1b3a;color:#cfd2ff;padding:12px 14px;border-radius:12px;max-height:220px;overflow:auto;font-size:12px;white-space:pre-wrap;margin:0;font-family:"Cascadia Code",Consolas,monospace}
 .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:8px 0}
 .muted{color:var(--muted)}.ok{color:var(--ok)}.bad{color:var(--bad)}
-.tag{display:inline-block;padding:0 6px;border-radius:10px;background:#eee;font-size:12px;margin:1px}
-.step{display:inline-block;width:10px;height:10px;border-radius:5px;background:#ccc;margin-right:4px}
-.step.done{background:var(--ok)}
-audio{height:30px;vertical-align:middle}
-h3{margin:14px 0 6px;font-size:15px}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-@media(max-width:800px){.grid2{grid-template-columns:1fr}}
+.tag{display:inline-block;padding:1px 9px;border-radius:999px;background:#eeedff;color:var(--acc);font-size:12px;font-weight:600;margin:1px}
+.tag.bad{background:#ffe9e8;color:var(--bad)}
+.tag.ok2{background:#e0f8f2;color:var(--ok)}
+.tag.mute{background:#f0f0f4;color:var(--muted)}
+.step{display:inline-block;width:10px;height:10px;border-radius:5px;background:#dcdcf0;margin-right:4px;transition:.2s}
+.step.done{background:var(--ok);box-shadow:0 0 0 3px rgba(0,184,148,.18)}
+audio{height:32px;vertical-align:middle;border-radius:999px}
+h3{margin:14px 0 8px;font-size:15px;font-weight:700}
+h3::before{content:"";display:inline-block;width:4px;height:14px;border-radius:2px;background:var(--grad);margin-right:8px;vertical-align:-2px}
+code{background:#eeedff;color:var(--acc);padding:1px 6px;border-radius:6px;font-size:12.5px}
+details summary{cursor:pointer}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media(max-width:800px){.grid2{grid-template-columns:1fr}main{padding:12px}}
 </style></head><body>
-<header><b>trpgv 广播剧工作台</b>
+<header><b>🎧 trpgv 广播剧工作台</b>
  项目 <select id="proj"></select>
  <span id="steps"></span>
  <span id="run" class="muted"></span>
@@ -164,8 +185,8 @@ async function loadChars(){
   return `<tr data-i="${i}"><td><b>${x.name}</b>${r.aliases?.length?'<br><span class="muted">'+r.aliases.join(' / ')+'</span>':''}</td><td>${x.type||''}</td>
   <td><span class="muted">${r.traits||''}</span><br>${r.tone||''}</td>
   <td><select class="v" ${!r.voice?'style="border-color:var(--bad)"':''}><option value="">（未指定）</option>${opts}</select></td>
-  <td><input type="text" class="r" value="${r.rate||'0%'}" style="width:52px"></td>
-  <td><input type="text" class="pt" value="${r.pitch||'0Hz'}" style="width:52px"></td>
+  <td><input type="text" class="r" value="${r.rate||'0%'}" style="width:64px"></td>
+  <td><input type="text" class="pt" value="${r.pitch||'0Hz'}" style="width:64px"></td>
   <td><button onclick="preview(this)">▶</button> <audio class="pa"></audio></td></tr>`}).join('');
  window._rows=rows;
 }
@@ -256,11 +277,11 @@ function renderCues(){
  const onlyBgm=$('#cueOnlyBgm').checked;
  const opt=(k,cur)=>{const files=Object.entries(lib[k]||{}).filter(([,x])=>x.exists).map(([f])=>`${k}/${f}`);
   return `<option value="__auto">（自动匹配）</option><option value="">（静音）</option>`+files.map(f=>`<option value="${f}" ${f===cur?'selected':''}>${f.split('/')[1]}</option>`).join('')};
- const srcTag={override:'<span class="tag" style="background:#dfe9d8">手选</span>',muted:'<span class="tag">静音</span>',auto:'<span class="tag" style="background:#e8e2f5">自动</span>',missing:'<span class="tag bad">缺失</span>'};
+ const srcTag={override:'<span class="tag ok2">手选</span>',muted:'<span class="tag mute">静音</span>',auto:'<span class="tag">自动</span>',missing:'<span class="tag bad">缺失</span>'};
  $('#cueTbl tbody').innerHTML=cueList.filter(c=>!onlyBgm||c.kind==='bgm').map(c=>`<tr data-i="${c.i}">
   <td class="muted">${c.scene}</td><td>${c.kind==='bgm'?'BGM':'音效'}</td><td>${c.desc}</td>
   <td>${srcTag[c.src]} <select class="cf" onchange="setCue(${c.i},this.value)" style="max-width:190px">${opt(c.kind,c.file)}</select></td>
-  <td><input type="number" class="cdb" value="${c.db??''}" placeholder="默认" style="width:60px" onchange="setCueDb(${c.i},this.value)"></td>
+  <td><input type="number" class="cdb" value="${c.db??''}" placeholder="默认" style="width:74px" onchange="setCueDb(${c.i},this.value)"></td>
   <td>${c.file?`<audio controls preload="none" src="/assets/${c.file}" style="width:180px"></audio>`:''}</td>
   <td><button onclick="openCueSearch(${c.i})">搜索</button></td></tr>`).join('')||'<tr><td colspan=7 class="muted">剧本中没有 BGM/音效标注</td></tr>';
  // 自动/静音状态下拉框显示对应项
