@@ -1,0 +1,254 @@
+<meta charset="utf-8">
+<title>trpg-voice-acting</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=ZCOOL+XiaoWei&family=Noto+Sans+SC:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --bg:#0e1c21;--bg2:#13262c;--ink:#eef3f3;--ink2:#b7c6c9;--mute:#7f9498;
+  --amber:#f2a93b;--amber2:#ffc86b;--teal:#5aa3ad;--line:#22383f;--paper:#f6f3ea;--paper-ink:#1b2a2e;
+  --shadow:0 20px 60px rgba(0,0,0,.35);
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    --bg:#f1f5f5;--bg2:#e6eeee;--ink:#14282e;--ink2:#3a4f55;--mute:#6d8287;
+    --amber:#d98a1a;--amber2:#b96f0a;--teal:#2f7a85;--line:#cfdcde;--paper:#fffdf7;--paper-ink:#1b2a2e;
+    --shadow:0 20px 50px rgba(20,40,46,.12);
+  }
+}
+:root[data-theme="light"]{
+  --bg:#f1f5f5;--bg2:#e6eeee;--ink:#14282e;--ink2:#3a4f55;--mute:#6d8287;
+  --amber:#d98a1a;--amber2:#b96f0a;--teal:#2f7a85;--line:#cfdcde;--paper:#fffdf7;--paper-ink:#1b2a2e;
+  --shadow:0 20px 50px rgba(20,40,46,.12);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.75 "Noto Sans SC",system-ui,"PingFang SC","Microsoft YaHei",sans-serif;padding-block:0 80px;padding-inline:20px}
+.wrap{max-width:860px;margin:0 auto}
+h1,h2,h3{font-family:"ZCOOL XiaoWei","Noto Serif SC",serif;font-weight:400;text-wrap:balance;margin:0}
+h1{font-size:clamp(40px,7vw,68px);line-height:1.12;letter-spacing:.01em}
+h2{font-size:clamp(26px,3.6vw,34px);margin-bottom:14px}
+h3{font-size:20px;color:var(--amber2)}
+p{max-width:64ch;margin:0 0 14px;color:var(--ink2)}
+p.lead{font-size:19px;color:var(--ink)}
+.eyebrow{font:500 12px/1 "IBM Plex Mono",monospace;letter-spacing:.18em;text-transform:uppercase;color:var(--mute);display:flex;align-items:center;gap:10px;margin-bottom:18px}
+.eyebrow::before{content:"";width:28px;height:1px;background:var(--mute)}
+section{padding-block:56px;border-top:1px solid var(--line)}
+section:first-of-type{border:0}
+a{color:var(--amber2)}
+code,pre,.mono{font-family:"IBM Plex Mono",Consolas,monospace}
+code{font-size:.92em;color:var(--amber2)}
+
+/* hero */
+.hero{padding-block:56px 40px}
+.onair{display:inline-flex;align-items:center;gap:8px;font:500 12px/1 "IBM Plex Mono",monospace;letter-spacing:.2em;color:var(--amber2);border:1px solid var(--amber2);padding:6px 12px;border-radius:2px;margin-bottom:26px}
+.onair i{width:8px;height:8px;border-radius:50%;background:var(--amber2);box-shadow:0 0 12px var(--amber);animation:blink 2.2s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+@media (prefers-reduced-motion:reduce){.onair i{animation:none}}
+.hero .sub{font-size:20px;color:var(--ink2);max-width:40ch;margin:22px 0 0}
+.hero .en{font:400 14px/1.6 "IBM Plex Mono",monospace;color:var(--mute);margin-top:10px}
+
+/* transformation */
+.xform{display:grid;grid-template-columns:1fr auto 1fr;gap:18px;align-items:stretch;margin-top:48px}
+.pane{border-radius:6px;padding:18px 20px;font-family:"IBM Plex Mono",monospace;font-size:13px;line-height:1.85;min-width:0;overflow:hidden}
+.pane.log{background:var(--bg2);color:var(--ink2);border:1px solid var(--line)}
+.pane.log .drop{opacity:.38;text-decoration:line-through}
+.pane.log .fold{color:var(--teal)}
+.pane.script{background:var(--paper);color:var(--paper-ink);box-shadow:var(--shadow)}
+.pane.script .role{color:#8a5a12;font-weight:500}
+.pane.script .sfx{color:#2f7a85}
+.pane.script .bgm{color:#a0662a;font-style:italic}
+.pane .cap{font-size:11px;letter-spacing:.16em;text-transform:uppercase;opacity:.6;margin-bottom:10px}
+.arrow{display:flex;align-items:center;color:var(--amber);font-size:28px}
+@media (max-width:700px){.xform{grid-template-columns:1fr}.arrow{justify-content:center;transform:rotate(90deg);padding:0}}
+
+/* timeline svg */
+.track{margin-top:18px;background:var(--bg2);border:1px solid var(--line);border-radius:6px;padding:14px 16px 8px}
+.track .cap{font:500 11px/1 "IBM Plex Mono",monospace;letter-spacing:.16em;text-transform:uppercase;color:var(--mute);margin-bottom:8px}
+.track svg{width:100%;height:auto;display:block}
+
+/* pain / grid */
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:22px 28px}
+.grid h3{margin-bottom:6px}
+.grid p{font-size:15px;margin:0}
+
+/* pipeline */
+.steps{display:grid;gap:0;border-top:1px solid var(--line)}
+.step{display:grid;grid-template-columns:52px 1fr auto;gap:18px;padding:16px 0;border-bottom:1px solid var(--line);align-items:baseline}
+.step .n{font:500 13px/1 "IBM Plex Mono",monospace;color:var(--amber)}
+.step .name{font-weight:500;color:var(--ink)}
+.step .how{color:var(--ink2);font-size:15px;margin:2px 0 0}
+.step .cost{font:500 12px/1 "IBM Plex Mono",monospace;letter-spacing:.08em;color:var(--teal);white-space:nowrap}
+@media (max-width:560px){.step{grid-template-columns:40px 1fr}.step .cost{grid-column:2}}
+
+/* rules */
+.rules{display:grid;gap:14px;max-width:64ch}
+.rule{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:start}
+.rule b{font-family:"ZCOOL XiaoWei",serif;font-weight:400;font-size:22px;color:var(--amber2);line-height:1.3}
+.rule p{margin:0;font-size:15px}
+
+/* numbers */
+.nums{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:20px 24px;margin:6px 0 20px}
+.num b{display:block;font:500 36px/1.05 "IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;color:var(--ink);letter-spacing:-.02em;white-space:nowrap}
+.num small{display:block;font-size:13px;color:var(--mute);margin-top:6px;line-height:1.5}
+.num .f{color:var(--amber2)}
+
+/* audience */
+.who{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:18px}
+.who div{border-left:2px solid var(--teal);padding-left:14px}
+.who b{display:block;color:var(--ink);font-weight:500}
+.who span{font-size:14.5px;color:var(--ink2)}
+
+/* roadmap */
+.road{display:grid;gap:10px;max-width:64ch;font-size:15px;color:var(--ink2)}
+.road div::before{content:"→ ";color:var(--amber);font-family:"IBM Plex Mono",monospace}
+
+/* cta */
+pre.cmd{background:var(--bg2);border:1px solid var(--line);border-radius:6px;padding:16px 18px;font-size:13.5px;line-height:1.8;overflow-x:auto;color:var(--ink);margin:18px 0}
+pre.cmd .c{color:var(--mute)}
+.fin{font-family:"ZCOOL XiaoWei",serif;font-size:26px;color:var(--ink);margin-top:26px}
+footer{font:400 12px/1.6 "IBM Plex Mono",monospace;color:var(--mute);margin-top:40px;letter-spacing:.04em}
+</style>
+
+<div class="wrap">
+
+<section class="hero">
+  <div class="onair"><i></i>ON AIR</div>
+  <h1>把一场跑团，<br>变成一部广播剧。</h1>
+  <p class="sub">跑团文字记录进，多角色配音的成片出。清洗、拆角色、改写剧本、配声线与音效，一条开源流水线跑完；声线与素材全免费，LLM 用量压到最低。</p>
+  <p class="en">trpg-voice-acting · open source · MIT</p>
+
+  <div class="xform">
+    <div class="pane log">
+      <div class="cap">原始记录 · 示例</div>
+      <div>&lt;[骰娘]骰子&gt;: 侦查: D100=37/60 成功</div>
+      <div class="drop">&lt;[阿柯]玩家&gt;: 等下我去倒杯水</div>
+      <div>&lt;[主持]KP&gt;: 桌上摊着昨晚的报纸，头版是绑架案</div>
+      <div class="drop">&lt;[阿柯]玩家&gt;: 这个要过san吗</div>
+      <div>&lt;[阿柯]克莱恩&gt;: "又是这种新闻。"我把报纸折起来</div>
+      <div class="drop">&lt;[主持]KP&gt;: 不用，先不用</div>
+      <div class="fold">[骰子: 侦查 成功]</div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="pane script">
+      <div class="cap">剧本 · 第 3 幕</div>
+      <div class="bgm">「BGM: 低沉的悬疑弦乐」</div>
+      <div><span class="role">【旁白】</span>桌上摊着昨晚的报纸，头版是一桩绑架案。克莱恩扫了一眼便看清了细节。</div>
+      <div class="sfx">[报纸翻动声]</div>
+      <div><span class="role">【克莱恩】</span>又是这种新闻。</div>
+      <div><span class="role">【旁白】</span>他把报纸折起来。</div>
+    </div>
+  </div>
+
+  <div class="track">
+    <div class="cap">混音时间轴 · 第 3 幕</div>
+    <svg viewBox="0 0 800 96" role="img" aria-label="第3幕音轨示意：台词、音效与 BGM 的叠放">
+      <g font-family="IBM Plex Mono,monospace" font-size="10" fill="var(--mute)">
+        <text x="0" y="18">台词</text><text x="0" y="46">音效</text><text x="0" y="74">BGM</text>
+      </g>
+      <g fill="var(--ink2)">
+        <rect x="52" y="8" width="120" height="14" rx="2"/><rect x="180" y="8" width="40" height="14" rx="2"/>
+        <rect x="228" y="8" width="88" height="14" rx="2"/><rect x="336" y="8" width="150" height="14" rx="2"/>
+        <rect x="494" y="8" width="60" height="14" rx="2"/><rect x="574" y="8" width="130" height="14" rx="2"/>
+        <rect x="712" y="8" width="80" height="14" rx="2"/>
+      </g>
+      <g fill="var(--teal)">
+        <rect x="316" y="38" width="14" height="14" rx="2"/><rect x="558" y="38" width="10" height="14" rx="2"/>
+      </g>
+      <g fill="var(--amber)" opacity=".85">
+        <path d="M52 78 L60 66 L76 84 L92 70 L110 82 L128 68 L150 80 L170 72 L190 82 L210 69 L232 80 L252 73 L272 82 L292 70 L312 80 L334 72 L356 82 L378 69 L400 80 L420 73 L440 82 L462 70 L484 80 L506 72 L528 82 L550 69 L572 80 L594 73 L616 82 L638 70 L660 80 L682 72 L704 82 L726 74 L748 82 L770 76 L792 84 L792 90 L52 90 Z"/>
+      </g>
+      <text x="52" y="94" font-family="IBM Plex Mono,monospace" font-size="9" fill="var(--mute)">0:00</text>
+      <text x="770" y="94" font-family="IBM Plex Mono,monospace" font-size="9" fill="var(--mute)">4:12</text>
+    </svg>
+  </div>
+</section>
+
+<section>
+  <div class="eyebrow">痛点</div>
+  <h2>一场几小时的故事，只剩几万字没人读的聊天记录</h2>
+  <div class="grid">
+    <div><h3>读不下去</h3><p>骰点、规则争论、场外闲聊和剧情缠在一起，团员自己都不愿从头翻。</p></div>
+    <div><h3>做不起</h3><p>想做成音频回顾，要人肉剪台词、找配音、配音乐，一集要花好几天。</p></div>
+    <div><h3>不懂结构</h3><p>现成的 AI 配音只管"把一段文字读出来"，不知道谁在说话、哪里换场、何时该有音乐。</p></div>
+  </div>
+</section>
+
+<section>
+  <div class="eyebrow">流水线</div>
+  <h2>六步，代码能做的绝不交给模型</h2>
+  <div class="steps">
+    <div class="step"><span class="n">01</span><div><div class="name">解析</div><p class="how">识别发言者与角色，续行归并；支持 txt / docx。</p></div><span class="cost">0 token</span></div>
+    <div class="step"><span class="n">02</span><div><div class="name">清洗</div><p class="how">正则先删指令、骰娘文案、场外行，折叠骰点结果；LLM 只对剩余行输出「序号 原因码」。</p></div><span class="cost">极低</span></div>
+    <div class="step"><span class="n">03</span><div><div class="name">拆角色</div><p class="how">KP 自动拆成旁白与各 NPC，每个角色一份性格、语气、声线。</p></div><span class="cost">一次调用</span></div>
+    <div class="step"><span class="n">04</span><div><div class="name">改写剧本</div><p class="how">逐幕生成 <code>【角色】台词</code> · <code>[音效]</code> · <code>「BGM」</code> 格式；三类校验，失败带错误反馈自动重试。</p></div><span class="cost">按幕</span></div>
+    <div class="step"><span class="n">05</span><div><div class="name">配音与素材</div><p class="how">edge-tts 14 个中文神经声线，按行缓存；Openverse（Freesound + Jamendo，CC 授权、无密钥）按剧本描述自动检索下载，署名自动记录。</p></div><span class="cost">免费</span></div>
+    <div class="step"><span class="n">06</span><div><div class="name">混音出片</div><p class="how">BGM −18 dB 淡入淡出、幕间留白，导出分幕与全片 mp3。Web 工作台里每处 BGM/音效可换、可静音、可调音量。</p></div><span class="cost">本地</span></div>
+  </div>
+</section>
+
+<section>
+  <div class="eyebrow">底线</div>
+  <h2>玩家的故事，就是玩家的故事</h2>
+  <div class="rules">
+    <div class="rule"><b>不改</b><p>不增删剧情、不改人设、不添加原文没有的心理活动。提示词硬规则 + 输出校验双重把守。</p></div>
+    <div class="rule"><b>克制</b><p>BGM 只在氛围切换处出现，音效每幕不超过 5 处。配乐是底噪，不是主角。</p></div>
+    <div class="rule"><b>不克隆</b><p>不做真人声线克隆，只用公开可选的声线库。</p></div>
+  </div>
+</section>
+
+<section>
+  <div class="eyebrow">实测</div>
+  <h2>样本《金枝》第一部分</h2>
+  <div class="nums">
+    <div class="num"><b>310<span class="f">→</span>131</b><small>原始行 → 有效剧情行<br>规则层删 178，LLM 层只删 1</small></div>
+    <div class="num"><b>8</b><small>幕 · 自动切分<br>235 句台词</small></div>
+    <div class="num"><b>1+7</b><small>旁白 + 角色<br>新 NPC 自动登记</small></div>
+    <div class="num"><b>35/35</b><small>音效与 BGM 标注<br>全部由 Openverse 自动落地</small></div>
+    <div class="num"><b>34<span class="f">min</span></b><small>成片时长<br>默认 claude-haiku-4-5</small></div>
+  </div>
+  <p>剧本生成实测 haiku 比 sonnet 更守格式：sonnet 两次把记录当成对话续写，haiku 一次通过并自带氛围标注。更便宜的模型恰好也是更合适的模型。</p>
+</section>
+
+<section>
+  <div class="eyebrow">时机</div>
+  <h2>三件事第一次同时成立</h2>
+  <div class="grid">
+    <div><h3>免费 TTS 够像人了</h3><p>edge-tts 的神经声线已能撑起长篇叙事，不再是"机器朗读"。</p></div>
+    <div><h3>小模型够用了</h3><p>结构化清洗与改写不需要旗舰模型，成本不再是门槛。</p></div>
+    <div><h3>CC 音频有了统一入口</h3><p>Openverse 免密钥聚合 Freesound 与 Jamendo，素材可以按描述自动取。</p></div>
+  </div>
+</section>
+
+<section>
+  <div class="eyebrow">给谁用</div>
+  <h2>从主持人到开发者</h2>
+  <div class="who">
+    <div><b>KP / 主持人</b><span>给团员一份能听的团后回顾。</span></div>
+    <div><b>跑团播客与视频作者</b><span>把文字团批量转成节目素材。</span></div>
+    <div><b>模组作者</b><span>用真实团记录快速生成试听 demo。</span></div>
+    <div><b>开发者</b><span>干净的 Python 模块 + CLI + FastAPI；TTS、LLM、素材源都是可替换的适配点。</span></div>
+  </div>
+</section>
+
+<section>
+  <div class="eyebrow">下一步</div>
+  <h2>路线图</h2>
+  <div class="road">
+    <div>情绪风格：角色表 <code>style</code> 字段接 CosyVoice 等带情感的 TTS</div>
+    <div>更多记录格式：Discord、Roll20、Foundry 导出</div>
+    <div>素材候选排序：按时长、授权、评分自动挑更合适的一条</div>
+    <div>一键发布：分幕封面、章节标记、播客 RSS</div>
+  </div>
+</section>
+
+<section>
+  <div class="eyebrow">参与</div>
+  <h2>带上你的一份团记录</h2>
+  <pre class="cmd"><span class="c"># github.com/DrenLea/trpg-voice-acting · MIT</span>
+git clone https://github.com/DrenLea/trpg-voice-acting.git
+cd trpg-voice-acting
+uv venv &amp;&amp; uv pip install -e . &amp;&amp; cp .env.example .env
+trpgv web</pre>
+  <div class="fin">十分钟后，你会听到它。</div>
+  <footer>trpg-voice-acting · <a href="https://github.com/DrenLea/trpg-voice-acting">github.com/DrenLea/trpg-voice-acting</a></footer>
+</section>
+
+</div>
